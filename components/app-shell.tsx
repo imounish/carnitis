@@ -2,19 +2,21 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   Car,
   LayoutDashboard,
-  Fuel,
   Wrench,
   ListTodo,
   Gauge,
   Plus,
+  LogOut,
+  UserCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useAuth } from "@/lib/auth/auth-context";
 
 const navItems = [
   { href: "/", label: "Home", icon: LayoutDashboard },
@@ -26,17 +28,24 @@ const navItems = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { signOut } = useAuth();
+
+  async function handleSignOut() {
+    await signOut();
+    router.replace("/sign-in");
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
       {/* Top bar - compact on mobile */}
-      <header className="sticky top-0 z-50 flex h-12 items-center justify-between border-b border-border bg-card/80 px-4 backdrop-blur-md md:h-14 lg:px-6">
+      <header className="sticky top-0 z-50 flex h-14 items-center justify-between border-b border-border bg-card/80 px-4 backdrop-blur-md md:h-14 lg:px-6">
         <Link href="/" className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary md:h-8 md:w-8">
             <Gauge className="h-3.5 w-3.5 text-primary-foreground md:h-4 md:w-4" />
           </div>
           <span className="text-base font-semibold tracking-tight text-foreground md:text-lg">
-            GarageLog
+            Carnitis
           </span>
         </Link>
 
@@ -65,7 +74,31 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        <ThemeToggle />
+        <div className="flex items-center gap-1.5">
+          <ThemeToggle />
+          <Button
+            asChild
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="Account settings"
+            className="h-10 w-10"
+          >
+            <Link href="/settings">
+              <UserCircle2 className="h-5 w-5" />
+            </Link>
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={handleSignOut}
+            aria-label="Sign out"
+            className="hidden h-10 w-10 sm:inline-flex"
+          >
+            <LogOut className="h-4 w-4" />
+          </Button>
+        </div>
       </header>
 
       {/* Main content - padded for bottom nav on mobile */}
@@ -85,7 +118,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="flex flex-col items-center"
+                  className="flex min-h-11 min-w-11 flex-col items-center justify-center rounded-xl"
                 >
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-transform active:scale-95">
                     <item.icon className="h-5 w-5" />
@@ -102,7 +135,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 transition-colors active:bg-accent",
+                  "flex min-h-11 min-w-11 flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 transition-colors active:bg-accent",
                   isActive
                     ? "text-primary"
                     : "text-muted-foreground"

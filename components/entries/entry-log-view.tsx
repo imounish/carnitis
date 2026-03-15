@@ -228,8 +228,8 @@ export function EntryLogView() {
   const today = new Date().toISOString().split("T")[0];
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-4 md:py-6 lg:px-6 lg:py-8">
-      <div className="mb-4 md:mb-6">
+    <div className="mx-auto w-full max-w-lg px-4 py-4 pb-28 md:px-6 md:py-6 md:pb-8 lg:py-8">
+      <div className="mb-5 md:mb-6">
         <h1 className="text-xl font-bold tracking-tight text-foreground md:text-2xl">
           Log Entry
         </h1>
@@ -285,7 +285,7 @@ export function EntryLogView() {
         })}
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4 pb-16 md:pb-0">
         {/* Common fields: date + mileage */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
@@ -309,6 +309,7 @@ export function EntryLogView() {
               id="mileage"
               name="mileage"
               type="number"
+              inputMode="numeric"
               min={selectedCar?.current_mileage ?? 0}
               placeholder={selectedCar?.current_mileage?.toString() ?? "0"}
               required
@@ -332,6 +333,7 @@ export function EntryLogView() {
                   id="fuel_gallons"
                   name="fuel_gallons"
                   type="number"
+                  inputMode="decimal"
                   step="0.001"
                   min={0}
                   placeholder="12.500"
@@ -347,6 +349,7 @@ export function EntryLogView() {
                   id="fuel_price_per_gallon"
                   name="fuel_price_per_gallon"
                   type="number"
+                  inputMode="decimal"
                   step="0.001"
                   min={0}
                   placeholder="3.299"
@@ -414,6 +417,7 @@ export function EntryLogView() {
                   id="expense_amount_me"
                   name="expense_amount"
                   type="number"
+                  inputMode="decimal"
                   step="0.01"
                   min={0}
                   placeholder="85.00"
@@ -532,6 +536,7 @@ export function EntryLogView() {
                   id="expense_amount_md"
                   name="expense_amount"
                   type="number"
+                  inputMode="decimal"
                   step="0.01"
                   min={0}
                   placeholder="Optional"
@@ -661,24 +666,26 @@ export function EntryLogView() {
         </div>
 
         {/* Submit */}
-        <Button
-          type="submit"
-          disabled={saving}
-          className="h-11 w-full text-sm font-semibold"
-          size="lg"
-        >
-          {saving ? (
-            <div className="flex items-center gap-2">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-              Saving...
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Save className="h-4 w-4" />
-              Save Entry
-            </div>
-          )}
-        </Button>
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 px-4 py-3 backdrop-blur-md safe-bottom-pad md:static md:border-0 md:bg-transparent md:px-0 md:py-0 md:backdrop-blur-none">
+          <Button
+            type="submit"
+            disabled={saving}
+            className="h-11 w-full text-sm font-semibold"
+            size="lg"
+          >
+            {saving ? (
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                Saving...
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Save className="h-4 w-4" />
+                Save Entry
+              </div>
+            )}
+          </Button>
+        </div>
       </form>
     </div>
   );

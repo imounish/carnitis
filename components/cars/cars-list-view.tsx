@@ -28,8 +28,8 @@ export function CarsListView() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 lg:px-6 lg:py-8">
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div className="mx-auto w-full max-w-7xl px-4 py-4 md:px-6 md:py-6 lg:py-8">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3 md:mb-7 md:items-end">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground lg:text-3xl">
             My Cars
@@ -38,7 +38,7 @@ export function CarsListView() {
             Manage your vehicles and track their costs.
           </p>
         </div>
-        <Button asChild size="sm">
+        <Button asChild size="sm" className="h-10 w-full sm:w-auto">
           <Link href="/cars/new">
             <Plus className="mr-1.5 h-4 w-4" />
             Add Car

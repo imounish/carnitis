@@ -135,3 +135,20 @@
     @apply bg-background text-foreground;
   }
 }
+
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-bottom-pad {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 0.75rem);
+  }
+
+  .safe-bottom-margin {
+    margin-bottom: calc(env(safe-area-inset-bottom) + 0.75rem);
+  }
+}
+
+@layer utilities {
+  .tap-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}

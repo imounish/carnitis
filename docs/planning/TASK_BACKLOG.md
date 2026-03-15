@@ -14,7 +14,7 @@ This is the single source of truth for planned implementation work in `carnitis`
 
 | ID | Title | Priority | Status | Depends On | Plan |
 |---|---|---|---|---|---|
-| T001 | Auth + Onboarding Foundation (mock-first, Supabase-ready) | P0 | todo | - | `IP-001-auth-onboarding-foundation.md` |
+| T001 | Auth + Onboarding Foundation (mock-first, Supabase-ready) | P0 | done | - | `IP-001-auth-onboarding-foundation.md` |
 | T002 | Route Protection + Session-aware App Shell | P0 | todo | T001 | TBD |
 | T003 | Supabase Client + Environment Contract (local Docker-first) | P0 | todo | T001 | TBD |
 | T004 | Social Login Integration (Google first, extensible providers) | P1 | todo | T001, T003 | TBD |
@@ -27,6 +27,7 @@ This is the single source of truth for planned implementation work in `carnitis`
 | T011 | Error Handling + Observability Baseline (UX-safe failures) | P1 | todo | T005 | TBD |
 | T012 | Accessibility Hardening Pass (WCAG AA focus) | P0 | todo | T001 | TBD |
 | T013 | UX Consistency Pass (navigation, empty states, progressive disclosure) | P2 | todo | T001 | TBD |
+| T013A | Mobile-First Excellence Program (small-screen UX baseline) | P0 | done | T001 | `IP-013A-mobile-first-excellence.md` |
 | T014 | Performance Baseline (RSC/client boundaries + bundle audit) | P2 | todo | T005 | TBD |
 | T015 | Test Strategy Baseline (unit + integration + smoke e2e) | P1 | todo | T001 | TBD |
 | T016 | CI Quality Gates (typecheck, lint, test, build) | P1 | todo | T015 | TBD |
@@ -37,3 +38,4 @@ This is the single source of truth for planned implementation work in `carnitis`
 - Work will proceed incrementally; no broad rewrites.
 - The current codebase uses dummy data; migration tasks preserve existing UX first, then switch adapters.
 - Plan files should define rollback strategy and manual QA scenarios.
+- `T013A` is mandatory and should be considered cross-cutting in all feature work (touch targets, thumb reach, keyboard handling, safe areas, and reduced cognitive load on mobile).

@@ -55,12 +55,12 @@ export function AddCarForm() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-6 lg:px-6 lg:py-8">
+    <div className="mx-auto w-full max-w-2xl px-4 py-4 pb-28 md:px-6 md:py-6 lg:py-8 lg:pb-8">
       <Button
         asChild
         variant="ghost"
         size="sm"
-        className="mb-4 text-muted-foreground"
+        className="mb-3 h-9 px-2 text-muted-foreground"
       >
         <Link href="/cars">
           <ArrowLeft className="mr-1.5 h-4 w-4" />
@@ -68,9 +68,14 @@ export function AddCarForm() {
         </Link>
       </Button>
 
-      <h1 className="mb-6 text-2xl font-bold tracking-tight text-foreground">
-        Add a New Car
-      </h1>
+      <div className="mb-6 space-y-1">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          Add a New Car
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Fill in vehicle details to start tracking expenses and service history.
+        </p>
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Name */}
@@ -103,6 +108,7 @@ export function AddCarForm() {
               id="year"
               name="year"
               type="number"
+              inputMode="numeric"
               min={1900}
               max={2030}
               placeholder="2024"
@@ -146,6 +152,7 @@ export function AddCarForm() {
               id="current_mileage"
               name="current_mileage"
               type="number"
+              inputMode="numeric"
               min={0}
               placeholder="0"
               required
@@ -159,6 +166,7 @@ export function AddCarForm() {
               id="fuel_tank_capacity"
               name="fuel_tank_capacity"
               type="number"
+              inputMode="decimal"
               step="0.1"
               min={0}
               placeholder="15.8"
@@ -194,12 +202,12 @@ export function AddCarForm() {
         </div>
 
         {/* Submit */}
-        <div className="flex gap-3 pt-2">
-          <Button type="submit" disabled={saving}>
+        <div className="fixed inset-x-0 bottom-0 z-40 flex gap-3 border-t border-border bg-background/95 px-4 py-3 backdrop-blur-md safe-bottom-pad sm:static sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
+          <Button type="submit" disabled={saving} className="flex-1 sm:flex-none">
             <Save className="mr-1.5 h-4 w-4" />
             {saving ? "Saving..." : "Add Car"}
           </Button>
-          <Button type="button" variant="outline" asChild>
+          <Button type="button" variant="outline" asChild className="flex-1 sm:flex-none">
             <Link href="/cars">Cancel</Link>
           </Button>
         </div>

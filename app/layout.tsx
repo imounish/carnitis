@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/theme-provider";
+import { AuthProvider } from "@/lib/auth/auth-context";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -12,9 +13,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GarageLog - Vehicle Expense & Maintenance Tracker",
+  title: "Carnitis - Vehicle Expense & Maintenance Tracker",
   description:
-    "Track fuel expenses, maintenance schedules, and repair costs for all your vehicles in one place.",
+    "Track fuel expenses, maintenance schedules, and repair costs for every vehicle in one place.",
 };
 
 export const viewport: Viewport = {
@@ -45,8 +46,10 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
-          <Toaster richColors position="top-center" />
+          <AuthProvider>
+            {children}
+            <Toaster richColors position="top-center" />
+          </AuthProvider>
         </ThemeProvider>
         <Analytics />
       </body>

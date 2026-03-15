@@ -122,8 +122,8 @@ export function MaintenanceView() {
   const dueSoonItems = items.filter((i) => i.status === "due_soon");
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-4 md:py-6 lg:px-6 lg:py-8">
-      <div className="mb-4 flex items-center justify-between md:mb-6">
+    <div className="mx-auto w-full max-w-3xl px-4 py-4 pb-24 md:px-6 md:py-6 md:pb-8 lg:py-8">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3 md:mb-6 md:items-end">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-foreground md:text-2xl lg:text-3xl">
             Maintenance
@@ -134,7 +134,7 @@ export function MaintenanceView() {
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button size="sm">
+            <Button size="sm" className="hidden h-10 tap-target md:inline-flex">
               <Plus className="mr-1.5 h-4 w-4" />
               <span className="hidden sm:inline">Add Item</span>
               <span className="sm:hidden">Add</span>
@@ -169,6 +169,7 @@ export function MaintenanceView() {
                     id="add_miles"
                     name="interval_miles"
                     type="number"
+                    inputMode="numeric"
                     min={1}
                     placeholder="7500"
                     required
@@ -180,6 +181,7 @@ export function MaintenanceView() {
                     id="add_months"
                     name="interval_months"
                     type="number"
+                    inputMode="numeric"
                     min={1}
                     placeholder="6"
                   />
@@ -191,6 +193,7 @@ export function MaintenanceView() {
                   id="add_cost"
                   name="estimated_cost"
                   type="number"
+                  inputMode="decimal"
                   step="0.01"
                   min={0}
                   placeholder="85.00"
@@ -207,7 +210,7 @@ export function MaintenanceView() {
       {/* Car selector */}
       <div className="mb-4 md:mb-6">
         <Select value={selectedCarId} onValueChange={setSelectedCarId}>
-          <SelectTrigger className="h-9 text-sm md:max-w-xs">
+          <SelectTrigger className="h-10 w-full max-w-md text-sm">
             <SelectValue placeholder="Select a car" />
           </SelectTrigger>
           <SelectContent>
@@ -313,6 +316,17 @@ export function MaintenanceView() {
           ))}
         </div>
       )}
+
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 px-4 py-3 backdrop-blur-md safe-bottom-pad md:hidden">
+        <Button
+          type="button"
+          onClick={() => setDialogOpen(true)}
+          className="h-11 w-full"
+        >
+          <Plus className="mr-1.5 h-4 w-4" />
+          Add Maintenance Item
+        </Button>
+      </div>
     </div>
   );
 }
@@ -404,34 +418,65 @@ function MaintenanceCard({
         />
       </div>
 
-      {/* Details - wraps nicely on mobile */}
-      <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground md:mt-3 md:text-xs">
-        <span className="flex items-center gap-1">
-          <Gauge className="h-3 w-3" />
-          Every {formatMileage(item.interval_miles)}
-          {item.interval_months ? ` / ${item.interval_months}mo` : ""}
-        </span>
-        {item.last_done_mileage != null && (
-          <span className="flex items-center gap-1">
-            <CheckCircle2 className="h-3 w-3" />
-            Last: {formatMileage(item.last_done_mileage)}
-          </span>
-        )}
-        {milesUntilDue != null && (
-          <span className="flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            {milesUntilDue > 0
-              ? `${formatMileage(milesUntilDue)} to go`
-              : `${formatMileage(Math.abs(milesUntilDue))} overdue`}
-          </span>
-        )}
-        {item.estimated_cost != null && (
-          <span className="flex items-center gap-1">
-            <DollarSign className="h-3 w-3" />
-            ~{formatCurrency(item.estimated_cost)}
-          </span>
-        )}
+      {/* Structured details for consistent mobile layout */}
+      <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-muted-foreground md:mt-3.5 md:gap-3 md:text-xs">
+        <DetailCell
+          icon={Gauge}
+          label="Interval"
+          value={`Every ${formatMileage(item.interval_miles)}${item.interval_months ? ` / ${item.interval_months}mo` : ""}`}
+        />
+        <DetailCell
+          icon={Clock}
+          label="Due"
+          value={
+            milesUntilDue == null
+              ? "Not set"
+              : milesUntilDue > 0
+                ? `${formatMileage(milesUntilDue)} left`
+                : `${formatMileage(Math.abs(milesUntilDue))} overdue`
+          }
+        />
+        <DetailCell
+          icon={CheckCircle2}
+          label="Last Done"
+          value={
+            item.last_done_mileage != null
+              ? formatMileage(item.last_done_mileage)
+              : "Not recorded"
+          }
+        />
+        <DetailCell
+          icon={DollarSign}
+          label="Est. Cost"
+          value={
+            item.estimated_cost != null
+              ? `~${formatCurrency(item.estimated_cost)}`
+              : "Not set"
+          }
+        />
       </div>
+    </div>
+  );
+}
+
+function DetailCell({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-lg bg-muted/40 px-2.5 py-2">
+      <div className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/80 md:text-[11px]">
+        <Icon className="h-3 w-3" />
+        <span>{label}</span>
+      </div>
+      <p className="mt-0.5 truncate text-[11px] font-medium text-card-foreground md:text-xs">
+        {value}
+      </p>
     </div>
   );
 }

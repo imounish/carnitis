@@ -174,9 +174,9 @@ export function TodosView() {
   ).length;
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-4 md:py-6 lg:px-6 lg:py-8">
+    <div className="mx-auto w-full max-w-3xl px-4 py-4 pb-24 md:px-6 md:py-6 md:pb-8 lg:py-8">
       {/* Header */}
-      <div className="mb-4 flex items-center justify-between md:mb-6">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3 md:mb-6 md:items-end">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-foreground md:text-2xl lg:text-3xl">
             To-Do List
@@ -187,7 +187,7 @@ export function TodosView() {
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button size="sm">
+            <Button size="sm" className="hidden h-10 tap-target md:inline-flex">
               <Plus className="mr-1.5 h-4 w-4" />
               <span className="hidden sm:inline">Add Task</span>
               <span className="sm:hidden">Add</span>
@@ -274,6 +274,7 @@ export function TodosView() {
                     id="todo_cost"
                     name="estimated_cost"
                     type="number"
+                    inputMode="decimal"
                     step="0.01"
                     min={0}
                     placeholder="0.00"
@@ -295,7 +296,7 @@ export function TodosView() {
       {/* Filters */}
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <Select value={selectedCarId} onValueChange={setSelectedCarId}>
-          <SelectTrigger className="h-8 w-auto min-w-[120px] text-xs md:min-w-[180px] md:text-sm">
+          <SelectTrigger className="h-10 w-[170px] text-xs md:w-[220px] md:text-sm">
             <SelectValue placeholder="All cars" />
           </SelectTrigger>
           <SelectContent>
@@ -308,7 +309,7 @@ export function TodosView() {
           </SelectContent>
         </Select>
 
-        <div className="flex rounded-lg border border-border bg-muted/50 p-0.5">
+        <div className="flex h-10 rounded-lg border border-border bg-muted/50 p-0.5">
           {(["active", "completed", "all"] as const).map((f) => (
             <button
               key={f}
@@ -368,6 +369,17 @@ export function TodosView() {
           />
         </div>
       )}
+
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 px-4 py-3 backdrop-blur-md safe-bottom-pad md:hidden">
+        <Button
+          type="button"
+          onClick={() => setDialogOpen(true)}
+          className="h-11 w-full"
+        >
+          <Plus className="mr-1.5 h-4 w-4" />
+          Add Task
+        </Button>
+      </div>
     </div>
   );
 }

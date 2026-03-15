@@ -3,7 +3,7 @@
 ## Metadata
 - Task ID: `T001`
 - Owner: AI pair session with user
-- Status: `draft_ready`
+- Status: `implemented`
 - Scope: Add authentication and onboarding UX foundation without wiring real backend yet; create clean integration seams for Supabase Auth and social logins.
 
 ## Objectives

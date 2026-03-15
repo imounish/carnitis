@@ -85,9 +85,9 @@ export function DashboardView() {
   const totalRepair = cars.reduce((s, c) => s + c.total_repairs_spent, 0);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-4 md:py-6 lg:px-6 lg:py-8">
+    <div className="mx-auto w-full max-w-7xl px-4 py-4 md:px-6 md:py-6 lg:py-8">
       {/* Header - compact on mobile */}
-      <div className="mb-4 flex items-center justify-between md:mb-8">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3 md:mb-8 md:items-end">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-foreground md:text-2xl lg:text-3xl">
             Dashboard
@@ -96,8 +96,8 @@ export function DashboardView() {
             Overview of all your vehicles and recent activity.
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button asChild size="sm" variant="outline" className="hidden sm:flex">
+        <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
+          <Button asChild size="sm" variant="outline" className="hidden md:flex">
             <Link href="/cars/new">
               <Plus className="mr-1.5 h-4 w-4" />
               Add Car
@@ -159,16 +159,23 @@ export function DashboardView() {
               href="/cars"
               actionLabel="View all"
             />
-            {/* Mobile: horizontal scroll. Desktop: grid */}
-            <div className="-mx-4 px-4 md:mx-0 md:px-0">
-              <div className="flex gap-3 overflow-x-auto pb-2 md:grid md:grid-cols-2 md:gap-4 md:overflow-visible md:pb-0">
-                {cars.slice(0, 4).map((car) => (
-                  <div key={car.id} className="w-[280px] shrink-0 md:w-auto">
-                    <CarCard car={car} />
-                  </div>
-                ))}
-              </div>
+            <div className="space-y-3 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
+              {cars.slice(0, 4).map((car) => (
+                <div key={car.id} className="w-full min-w-0">
+                  <CarCard car={car} />
+                </div>
+              ))}
             </div>
+            {cars.length > 4 && (
+              <div className="mt-3 md:hidden">
+                <Button asChild variant="outline" size="sm" className="w-full">
+                  <Link href="/cars">
+                    View All Cars
+                    <ChevronRight className="ml-1.5 h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
+            )}
           </section>
 
           {/* Expense breakdown donut */}
@@ -314,15 +321,15 @@ function SectionHeader({
   actionLabel: string;
 }) {
   return (
-    <div className="mb-3 flex items-center justify-between">
-      <h2 className="text-base font-semibold text-foreground md:text-lg">
+    <div className="mb-3 flex items-center justify-between gap-2">
+      <h2 className="min-w-0 text-base font-semibold text-foreground md:text-lg">
         {title}
       </h2>
       <Button
         asChild
         variant="ghost"
         size="sm"
-        className="h-auto px-2 py-1 text-xs text-muted-foreground"
+        className="h-9 shrink-0 px-2 py-1 text-xs text-muted-foreground"
       >
         <Link href={href}>
           {actionLabel} <ArrowRight className="ml-1 h-3 w-3" />
