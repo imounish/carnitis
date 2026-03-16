@@ -1,160 +1,110 @@
-# IP-001: Auth + Onboarding Foundation (Mock-first, Supabase-ready)
+# IP-001: Auth + Onboarding UI Foundation (Mock-backed)
 
 ## Metadata
 - Task ID: `T001`
+- Title: `Auth + Onboarding UI Foundation (mock-backed)`
+- Priority: `P0`
 - Owner: AI pair session with user
-- Status: `implemented`
-- Scope: Add authentication and onboarding UX foundation without wiring real backend yet; create clean integration seams for Supabase Auth and social logins.
+- Status: `completed`
+- Related backlog item: `T001`
 
-## Objectives
-- Introduce a robust auth domain model and UI flow in `carnitis`.
-- Keep current app usable with dummy data while preparing backend-ready boundaries.
-- Ensure accessibility and route architecture are ready for protected pages.
-- Avoid lock-in so Google and additional providers can be added with minimal changes.
+## 1. Problem Statement
+The app needed an auth and onboarding UX foundation before real backend integration existed. The current implementation solved the route structure, forms, and user-flow scaffolding with a mock adapter, but it should no longer be treated as the final authentication architecture.
 
-## Non-Goals (for this iteration)
-- No live Supabase calls.
-- No real OAuth provider credentials/config.
-- No production-grade account management (email verification, password reset screens can be stubbed but not wired).
+## 2. Goals
+- Provide accessible sign-in, sign-up, onboarding, and protected-app route structure.
+- Keep auth UI isolated from backend-specific implementation details.
+- Preserve a clean migration path from mock auth to Better Auth-backed production auth.
 
-## Architecture Decisions
-1. `AuthService` interface first; implementation starts with in-memory/mock adapter.
-2. Server/client boundary by design:
-   - auth-aware route wrapper components prepared for future server session checks,
-   - client state limited to presentation and optimistic UX.
-3. Route groups for auth and app separation:
-   - `(auth)` for sign-in/up/onboarding,
-   - `(app)` for protected product surfaces.
-4. Explicit user/session types centralized in `lib/auth/types.ts`.
-5. Provider model supports N providers (`google`, `github`, etc.) with one button component.
+## 3. Non-Goals
+- No real Better Auth integration in this task.
+- No live Supabase or PostgreSQL reads/writes.
+- No production social login, email verification, or password reset flows.
 
-## Proposed File Tree (Phase 1)
-```text
-app/
-  (auth)/
-    sign-in/page.tsx
-    sign-up/page.tsx
-    onboarding/page.tsx
-  (app)/
-    layout.tsx
-    page.tsx
-components/
-  auth/
-    auth-layout.tsx
-    auth-form.tsx
-    social-login-buttons.tsx
-    onboarding-form.tsx
-    auth-guard.tsx
-lib/
-  auth/
-    types.ts
-    service.ts
-    mock-auth-service.ts
-    auth-context.tsx
-    session.ts
-```
+## 4. Scope
+### In Scope
+- `app/(auth)` and `app/(app)` route separation.
+- Shared auth UI components and onboarding form.
+- Mock `AuthService` contract and session bootstrap.
 
-## Step-by-Step Implementation Plan
+### Out Of Scope
+- Server-side session enforcement.
+- Real provider configuration.
+- Persistent onboarding/profile data in the database.
 
-### Step 1: Define auth contracts and domain types
-- Create `lib/auth/types.ts`:
-  - `AuthUser`, `AuthSession`, `AuthProvider`, `AuthResult`, `AuthErrorCode`.
-- Create `lib/auth/service.ts` with `AuthService` interface:
-  - `signInWithPassword`, `signUpWithPassword`, `signInWithOAuth`, `signOut`, `getSession`, `updateProfile`.
-- Acceptance criteria:
-  - No `any` types.
-  - Types capture provider extensibility and error mapping.
+## 5. Constraints And Assumptions
+- The shipped implementation is client-side and mock-backed.
+- Better Auth is the successor architecture for real auth, not Supabase Auth.
+- Follow-on tasks `T002`, `T002A`, `T003`, `T003A`, and `T004` replace the original “Supabase-ready auth” assumption.
 
-### Step 2: Build mock auth service adapter
-- Create `lib/auth/mock-auth-service.ts` implementing `AuthService`.
-- Support deterministic behavior:
-  - successful sign-in/up paths,
-  - known failure states (invalid credentials, duplicate email),
-  - mock session persistence via local storage key.
-- Acceptance criteria:
-  - Adapter can be swapped with future Supabase implementation by interface only.
+## 6. Architecture And Design
+- Affected layers/modules:
+  - `app/(auth)`, `app/(app)`
+  - `components/auth/*`
+  - `lib/auth/types.ts`
+  - `lib/auth/service.ts`
+  - `lib/auth/mock-auth-service.ts`
+  - `lib/auth/auth-context.tsx`
+- Data model changes:
+  - None. Mock storage only.
+- Auth/security impact:
+  - UI-only auth simulation; not suitable for production security decisions.
+- Mobile-first UX approach:
+  - Auth flows are already mobile-first and remain the UX baseline for real auth integration.
 
-### Step 3: Add auth context and session accessor
-- Create `lib/auth/auth-context.tsx`:
-  - `AuthProvider`, `useAuth` hook.
-- Create `lib/auth/session.ts`:
-  - utility helpers for bootstrapping and clearing session.
-- Wire provider in root app layout with minimal re-render footprint.
-- Acceptance criteria:
-  - consumers can read `user`, `session`, `isLoading`, and auth actions.
+## 7. Implementation Steps
+1. Define typed auth contracts and session/user models.
+2. Implement mock auth adapter with deterministic sign-in/sign-up/OAuth stubs.
+3. Add auth context and session bootstrap helpers.
+4. Build auth screens and onboarding UX.
+5. Move product routes under a protected app route group.
 
-### Step 4: Build accessible auth UI components
-- Add `components/auth/auth-layout.tsx` for shared page shell and visual consistency.
-- Add `components/auth/auth-form.tsx`:
-  - labeled fields, proper input types/autocomplete attributes,
-  - keyboard-first submission,
-  - error region with `aria-live`.
-- Add `components/auth/social-login-buttons.tsx`:
-  - provider-driven rendering, includes Google CTA now (mock action).
-- Acceptance criteria:
-  - tab/shift-tab, enter submit, focus ring and error announcements work.
+## 8. Test Plan
+- Unit tests:
+  - Contract and helper coverage for auth parsing/state transitions.
+- Integration tests:
+  - Auth form submission and error handling.
+- E2E/smoke tests:
+  - Sign-in, sign-up, onboarding, redirect smoke coverage.
+- Regression tests:
+  - Route-group behavior and auth-shell rendering.
 
-### Step 5: Introduce auth routes and onboarding route
-- Add:
-  - `app/(auth)/sign-in/page.tsx`
-  - `app/(auth)/sign-up/page.tsx`
-  - `app/(auth)/onboarding/page.tsx`
-- Add `components/auth/onboarding-form.tsx`:
-  - profile basics only (display name, default preferences).
-- Acceptance criteria:
-  - users can move through sign-in/up -> onboarding -> app root in mock mode.
+## 9. QA Plan
+- Responsive breakpoints to validate:
+  - 320x568, 375x812, 768x1024, 1024x768, desktop.
+- Accessibility checks:
+  - Labels, focus order, keyboard submit, `aria-live` errors.
+- Manual user flows:
+  - Sign up -> onboarding -> app.
+  - Sign in failure states.
+  - Sign out and redirect behavior.
 
-### Step 6: Add protected app wrapper for current routes
-- Add `components/auth/auth-guard.tsx`.
-- Add `app/(app)/layout.tsx` as protected shell entry.
-- Move current app pages under `(app)` route group (no URL changes).
-- Acceptance criteria:
-  - unauthenticated users are redirected to sign-in route.
-  - authenticated users cannot access sign-in/up unless signed out.
+## 10. Rollout And Rollback
+- Rollout plan:
+  - Keep this foundation as-is until Better Auth migration tasks land.
+- Rollback plan:
+  - Revert auth UI changes independently of domain/data migration work.
+- Monitoring plan:
+  - Limited to local/manual QA because this task is mock-only.
 
-### Step 7: Preserve social login integration seam
-- In social buttons, call `signInWithOAuth(provider)` even in mock mode.
-- Add clear TODO markers in adapter for future Supabase OAuth handoff.
-- Acceptance criteria:
-  - no UI refactor needed when swapping to Supabase provider APIs.
+## 11. Risks And Mitigations
+- Risk:
+  - Teams assume mock auth is production-ready.
+- Mitigation:
+  - Backlog now explicitly treats this task as UI scaffolding only.
+- Risk:
+  - Future auth migration couples to mock-only behavior.
+- Mitigation:
+  - Keep `AuthService` contract stable and move real auth behind new server utilities.
 
-### Step 8: Validation and quality gates
-- Run and record:
-  - `npx tsc --noEmit`
-  - `npm run build` (or document environment/network blocker)
-- Manual QA checklist:
-  - sign-up happy path,
-  - sign-in error states,
-  - sign-out behavior,
-  - auth guard redirect,
-  - mobile and desktop flow parity,
-  - keyboard and screen reader basic checks.
+## 12. Acceptance Criteria
+- [x] Accessible sign-in, sign-up, and onboarding screens exist.
+- [x] Product routes are separated from auth routes.
+- [x] Mock auth service is isolated from UI components.
+- [x] Follow-on Better Auth migration work is tracked separately in the backlog.
 
-## Supabase Migration Readiness Checklist
-- `AuthService` methods map 1:1 with Supabase auth operations.
-- Session object includes tokens/expiry fields expected by Supabase.
-- Provider enum includes at least `google` and allows extension.
-- No UI component directly imports mock implementation.
-- Route guard can switch from client check to server check with minimal churn.
-
-## Accessibility Checklist
-- Every input has a visible label.
-- Error message containers use `aria-live="polite"` and semantic role where needed.
-- Auth buttons include descriptive labels (not icon-only).
-- Color is not sole state indicator.
-- Focus order follows visual order.
-
-## Risks and Mitigations
-- Risk: Over-coupling to mock auth behavior.
-  - Mitigation: strict interface boundary and zero mock-specific logic in UI components.
-- Risk: Route move regressions.
-  - Mitigation: move incrementally and verify every route immediately after move.
-- Risk: Future SSR auth mismatch.
-  - Mitigation: keep guard logic isolated and prepared for server-side session extraction.
-
-## Definition of Done
-- Auth and onboarding screens exist and are reachable.
-- Existing main app routes are guarded.
-- Social login button framework exists with Google as first provider (mock action).
-- Type check passes.
-- Backlog is updated with implementation status and follow-up tasks.
+## 13. Definition Of Done Check
+- [x] Code complete
+- [x] Tests complete
+- [x] Docs/plans updated
+- [x] Quality gates passed

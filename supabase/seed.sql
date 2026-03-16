@@ -1,0 +1,2 @@
+-- Local seed placeholder for Supabase resets.
+-- Domain seed data will be added in T018 after the auth and schema foundations land.

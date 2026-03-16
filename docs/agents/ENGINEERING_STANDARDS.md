@@ -37,7 +37,7 @@
 ## 7. Security Baselines
 - Treat all inputs as untrusted.
 - Protect sensitive mutations behind auth checks.
-- Keep service role usage server-only.
+- Keep privileged Supabase secret-key usage server-only.
 - Minimize data returned to clients (principle of least data).
 
 ## 8. Review-Ready Standards

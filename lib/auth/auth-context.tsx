@@ -30,20 +30,16 @@ interface AuthContextValue {
 const AuthContext = React.createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const serviceRef = React.useRef<AuthService | null>(null);
+  const [service] = React.useState<AuthService>(() => new MockAuthService());
   const [session, setSession] = React.useState<AuthSession | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
-
-  if (!serviceRef.current) {
-    serviceRef.current = new MockAuthService();
-  }
 
   React.useEffect(() => {
     let mounted = true;
 
     async function bootstrap() {
-      const result = await serviceRef.current!.getSession();
+      const result = await service.getSession();
       if (!mounted) return;
 
       if (result.data) {
@@ -60,11 +56,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [service]);
 
   const signInWithPassword = React.useCallback(
     async (email: string, password: string): Promise<boolean> => {
-      const result = await serviceRef.current!.signInWithPassword({ email, password });
+      const result = await service.signInWithPassword({ email, password });
       if (result.error) {
         setErrorMessage(result.error.message);
         return false;
@@ -74,12 +70,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setErrorMessage(null);
       return true;
     },
-    []
+    [service]
   );
 
   const signUpWithPassword = React.useCallback(
     async (email: string, password: string, displayName: string): Promise<boolean> => {
-      const result = await serviceRef.current!.signUpWithPassword({
+      const result = await service.signUpWithPassword({
         email,
         password,
         displayName,
@@ -93,12 +89,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setErrorMessage(null);
       return true;
     },
-    []
+    [service]
   );
 
   const signInWithOAuth = React.useCallback(
     async (provider: AuthProvider): Promise<boolean> => {
-      const result = await serviceRef.current!.signInWithOAuth(provider);
+      const result = await service.signInWithOAuth(provider);
       if (result.error) {
         setErrorMessage(result.error.message);
         return false;
@@ -108,18 +104,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setErrorMessage(null);
       return true;
     },
-    []
+    [service]
   );
 
   const signOut = React.useCallback(async (): Promise<void> => {
-    await serviceRef.current!.signOut();
+    await service.signOut();
     setSession(null);
     setErrorMessage(null);
-  }, []);
+  }, [service]);
 
   const updateProfile = React.useCallback(
     async (input: AuthProfileUpdateInput): Promise<boolean> => {
-      const result = await serviceRef.current!.updateProfile(input);
+      const result = await service.updateProfile(input);
       if (result.error) {
         setErrorMessage(result.error.message);
         return false;
@@ -136,7 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setErrorMessage(null);
       return true;
     },
-    []
+    [service]
   );
 
   const value = React.useMemo<AuthContextValue>(
