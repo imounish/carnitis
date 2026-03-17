@@ -23,6 +23,8 @@
 - Enforce user scoping in SQL/RLS and in application checks.
 - Avoid ad-hoc access patterns that bypass shared data utilities.
 - Every migration must be reversible or have a documented rollback plan.
+- With Better Auth, do not build ownership policies around `auth.uid()`. Use app-owned user ids and a server-set transaction context instead.
+- For user-owned child tables, prefer redundant `owner_user_id` columns plus composite `(id, owner_user_id)` references so cross-table ownership can be enforced in the database.
 
 ## 5. Error And State Handling
 - Use typed result patterns for expected failures.
@@ -33,6 +35,7 @@
 - Log operational failures with sufficient context for debugging.
 - Never log credentials, access tokens, or PII-heavy payloads.
 - Keep client-side error text actionable and non-technical.
+- Prefer a shared logger/normalizer for data access so validation, Postgres constraint failures, and unexpected errors collapse into one consistent shape.
 
 ## 7. Security Baselines
 - Treat all inputs as untrusted.

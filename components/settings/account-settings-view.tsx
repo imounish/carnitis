@@ -47,9 +47,11 @@ export function AccountSettingsView() {
 
   async function handleSignOut() {
     setSigningOut(true);
-    await signOut();
+    const ok = await signOut();
     setSigningOut(false);
-    router.replace("/sign-in");
+    if (ok) {
+      router.replace("/sign-in");
+    }
   }
 
   return (

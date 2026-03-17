@@ -13,6 +13,7 @@ Every code change must include tests, unless the change is documentation-only.
 - Form change: validation tests (valid, invalid, edge cases) + submit behavior.
 - Service/data change: success path, failure path, authorization/data-scope checks.
 - Bug fix: regression test reproducing the original failure.
+- Repository or schema change: add at least one local-database integration check when the project has a reproducible local backend, and verify cross-user scoping explicitly.
 
 ## 4. Test Stack Guidance
 If not already configured in the touched area, establish a baseline stack:

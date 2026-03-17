@@ -15,14 +15,14 @@ This is the single source of truth for planned implementation work in `carnitis`
 | ID | Title | Priority | Status | Depends On | Plan |
 |---|---|---|---|---|---|
 | T001 | Auth + Onboarding UX Foundation (mock service boundary, Better Auth-ready) | P0 | done | - | `IP-001-auth-onboarding-foundation.md` |
-| T002 | Better Auth Core Integration for App Authentication | P0 | todo | T001, T003A | `IP-002-better-auth-app-auth.md` |
-| T002A | Server-side Route Protection + Session-aware App Shell | P0 | todo | T002 | `IP-002-better-auth-app-auth.md` |
-| T003 | Supabase Local Platform + Environment Contract (local Docker-first) | P0 | todo | - | `IP-003-supabase-platform-foundation.md` |
-| T003A | Better Auth Database Wiring + Runtime Env Contract | P0 | todo | T003 | `IP-003-supabase-platform-foundation.md` |
-| T004 | Social Login Integration (Google first via Better Auth) | P1 | todo | T002 | `IP-002-better-auth-app-auth.md` |
-| T005 | Data Access Layer Refactor (repository contracts + Supabase adapter seam) | P0 | todo | T002, T003A | `IP-005-supabase-data-adapter-foundation.md` |
-| T005A | Supabase Schema Baseline + RLS for User-owned Data | P0 | todo | T005 | `IP-005-supabase-data-adapter-foundation.md` |
-| T005B | Domain Row Mappers + Server Data Utilities | P0 | todo | T005A | `IP-005-supabase-data-adapter-foundation.md` |
+| T002 | Better Auth Core Integration for App Authentication | P0 | done | T001, T003A | `IP-002-better-auth-app-auth.md` |
+| T002A | Server-side Route Protection + Session-aware App Shell | P0 | done | T002 | `IP-002-better-auth-app-auth.md` |
+| T003 | Supabase Local Platform + Environment Contract (local Docker-first) | P0 | done | - | `IP-003-supabase-platform-foundation.md` |
+| T003A | Better Auth Database Wiring + Runtime Env Contract | P0 | done | T003 | `IP-003-supabase-platform-foundation.md` |
+| T004 | Social Login Integration (Google first via Better Auth) | P1 | done | T002 | `IP-002-better-auth-app-auth.md` |
+| T005 | Data Access Layer Refactor (repository contracts + Supabase adapter seam) | P0 | done | T002, T003A | `IP-005-supabase-data-adapter-foundation.md` |
+| T005A | Supabase Schema Baseline + RLS for User-owned Data | P0 | done | T005 | `IP-005-supabase-data-adapter-foundation.md` |
+| T005B | Domain Row Mappers + Server Data Utilities | P0 | done | T005A | `IP-005-supabase-data-adapter-foundation.md` |
 | T006 | Cars Domain Reads Migration to Supabase | P1 | todo | T005B | `IP-006-cars-domain-supabase-migration.md` |
 | T006A | Cars Domain Mutations Migration to Supabase | P1 | todo | T006, T010 | `IP-006-cars-domain-supabase-migration.md` |
 | T007 | Entries Domain Reads Migration to Supabase | P1 | todo | T005B, T006 | `IP-007-entries-domain-supabase-migration.md` |
@@ -32,8 +32,8 @@ This is the single source of truth for planned implementation work in `carnitis`
 | T008B | Maintenance Completion Linkage from Entry Writes | P1 | todo | T008A, T007A | `IP-008-maintenance-domain-supabase-migration.md` |
 | T009 | Todo Domain Reads + CRUD in Supabase | P1 | todo | T005B, T006 | `IP-009-todos-domain-supabase-migration.md` |
 | T009A | Todo Status Workflows + Entry Linkage | P1 | todo | T009, T007A | `IP-009-todos-domain-supabase-migration.md` |
-| T010 | Unified Form + Server Boundary Validation (zod) | P1 | todo | T002, T005 | `IP-005-supabase-data-adapter-foundation.md` |
-| T011 | Error Handling + Observability Baseline (UX-safe failures) | P1 | todo | T002, T005 | `IP-005-supabase-data-adapter-foundation.md` |
+| T010 | Unified Form + Server Boundary Validation (zod) | P1 | done | T002, T005 | `IP-005-supabase-data-adapter-foundation.md` |
+| T011 | Error Handling + Observability Baseline (UX-safe failures) | P1 | done | T002, T005 | `IP-005-supabase-data-adapter-foundation.md` |
 | T012 | Accessibility Hardening Pass (WCAG AA focus) | P0 | todo | T001 | TBD |
 | T013 | UX Consistency Pass (navigation, empty states, progressive disclosure) | P2 | todo | T001 | TBD |
 | T013A | Mobile-First Excellence Program (small-screen UX baseline) | P0 | done | T001 | `IP-013A-mobile-first-excellence.md` |

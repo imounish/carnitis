@@ -5,7 +5,7 @@
 - Title: Data Access Layer Refactor (Repository Contracts + Supabase Adapter Seam)
 - Priority: `P0`
 - Owner: AI pair session with user
-- Status: `draft`
+- Status: `in_progress` (`T005`, `T005A`, `T005B`, `T010`, and `T011` complete; `T017` remains)
 - Related backlog item: `T005`
 
 ## 1. Problem Statement
@@ -58,6 +58,7 @@
   - every domain query must be user-scoped
   - service-role or direct DB access stays server-only
   - user-facing errors must not leak SQL, token, or policy details
+  - Better Auth owns identity, so RLS uses `app.current_user_id()` instead of Supabase Auth helpers such as `auth.uid()`
 - Mobile-first UX approach:
   - loading, empty, and failure states remain explicit during phased migration
   - server validation errors map cleanly to existing forms on small screens
@@ -80,6 +81,7 @@
    - consistent UI-safe error messages
 5. Define transactional write strategy:
    - isolate entry-linked aggregate updates, maintenance completion, and todo completion behind one server-side workflow
+   - use a single Kysely/Postgres transaction that sets `app.current_user_id` via `set_config(...)`, validates linkage ownership, writes the entry, recalculates car aggregates, updates linked maintenance rows, and closes linked todos before commit
 
 ## 8. Test Plan
 - Unit tests:
@@ -131,13 +133,13 @@
 - Mitigation: centralize repository access and add authorization tests per domain.
 
 ## 12. Acceptance Criteria
-- [ ] The app has explicit domain repository seams for cars, entries, maintenance, and todos.
-- [ ] Baseline tables and RLS are defined before domain UIs switch to Supabase.
-- [ ] Validation and error normalization happen at shared server boundaries.
-- [ ] Transactional cross-entity mutations have a documented implementation path.
+- [x] The app has explicit domain repository seams for cars, entries, maintenance, and todos.
+- [x] Baseline tables and RLS are defined before domain UIs switch to Supabase.
+- [x] Validation and error normalization happen at shared server boundaries.
+- [x] Transactional cross-entity mutations have a documented implementation path.
 
 ## 13. Definition Of Done Check
-- [ ] Code complete
-- [ ] Tests complete
-- [ ] Docs/plans updated
-- [ ] Quality gates passed
+- [x] Code complete
+- [x] Tests complete
+- [x] Docs/plans updated
+- [x] Quality gates passed

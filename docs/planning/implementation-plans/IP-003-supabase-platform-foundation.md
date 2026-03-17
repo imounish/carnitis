@@ -5,7 +5,7 @@
 - Title: Supabase Local Platform + Environment Contract
 - Priority: `P0`
 - Owner: AI pair session with user
-- Status: `draft`
+- Status: `completed`
 - Related backlog item: `T003`
 
 ## 1. Problem Statement
@@ -121,13 +121,13 @@ The repository has only a minimal [`supabase/config.toml`](/Users/mounish/worksp
 - Mitigation: keep seed scripts using the same server-side domain boundaries where feasible.
 
 ## 12. Acceptance Criteria
-- [ ] Local Supabase workflow is documented and repeatable.
-- [ ] The app has shared server/browser Supabase helpers with validated env input.
-- [ ] Better Auth has a documented and implemented direct DB connection contract.
-- [ ] Reset and seed steps exist for local development.
+- [x] Local Supabase workflow is documented and repeatable.
+- [x] The app has shared server/browser Supabase helpers with validated env input.
+- [x] Better Auth has a documented and implemented direct DB connection contract.
+- [x] Reset and seed steps exist for local development.
 
 ## 13. Definition Of Done Check
-- [ ] Code complete
-- [ ] Tests complete
-- [ ] Docs/plans updated
-- [ ] Quality gates passed
+- [x] Code complete
+- [x] Tests complete
+- [x] Docs/plans updated
+- [x] Quality gates passed

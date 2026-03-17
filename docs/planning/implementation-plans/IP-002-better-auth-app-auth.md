@@ -5,7 +5,7 @@
 - Title: Better Auth Core Integration for App Authentication
 - Priority: `P0`
 - Owner: AI pair session with user
-- Status: `draft`
+- Status: `completed`
 - Related backlog item: `T002`
 
 ## 1. Problem Statement
@@ -134,14 +134,14 @@ Current auth is entirely client-side and mock-backed. [`lib/auth/auth-context.ts
 - Mitigation: keep `T004` dependent on `T002`.
 
 ## 12. Acceptance Criteria
-- [ ] Better Auth is the live auth system for app sign-in and sign-up.
-- [ ] Protected app routes use server-side session checks.
-- [ ] `AuthService` remains the UI-facing seam and no auth page imports Better Auth directly.
-- [ ] Onboarding completion is persisted outside client-only state.
-- [ ] Google login works through the existing provider button model.
+- [x] Better Auth is the live auth system for app sign-in and sign-up.
+- [x] Protected app routes use server-side session checks.
+- [x] `AuthService` remains the UI-facing seam and no auth page imports Better Auth directly.
+- [x] Onboarding completion is persisted outside client-only state.
+- [x] Google login works through the existing provider button model.
 
 ## 13. Definition Of Done Check
-- [ ] Code complete
-- [ ] Tests complete
-- [ ] Docs/plans updated
-- [ ] Quality gates passed
+- [x] Code complete
+- [x] Tests complete
+- [x] Docs/plans updated
+- [x] Quality gates passed

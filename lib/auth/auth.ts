@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { nextCookies } from "better-auth/next-js";
+import { getBetterAuthTrustedOrigins } from "@/lib/auth/auth-origins";
 import { getServerEnv } from "@/lib/env";
 import { getKyselyDb } from "@/lib/kysely";
 
@@ -16,7 +17,16 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
-  trustedOrigins: [env.BETTER_AUTH_URL],
+  socialProviders:
+    env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
+      ? {
+          google: {
+            clientId: env.GOOGLE_CLIENT_ID,
+            clientSecret: env.GOOGLE_CLIENT_SECRET,
+          },
+        }
+      : undefined,
+  trustedOrigins: getBetterAuthTrustedOrigins(env.BETTER_AUTH_URL),
   advanced: {
     useSecureCookies: env.BETTER_AUTH_URL.startsWith("https://"),
   },

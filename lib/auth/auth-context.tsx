@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import type { AuthService } from "@/lib/auth/service";
-import { MockAuthService } from "@/lib/auth/mock-auth-service";
+import { BetterAuthService } from "@/lib/auth/better-auth-service";
 import type {
   AuthProfileUpdateInput,
   AuthProvider,
@@ -22,17 +22,23 @@ interface AuthContextValue {
     displayName: string
   ) => Promise<boolean>;
   signInWithOAuth: (provider: AuthProvider) => Promise<boolean>;
-  signOut: () => Promise<void>;
+  signOut: () => Promise<boolean>;
   updateProfile: (input: AuthProfileUpdateInput) => Promise<boolean>;
   clearError: () => void;
 }
 
 const AuthContext = React.createContext<AuthContextValue | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [service] = React.useState<AuthService>(() => new MockAuthService());
-  const [session, setSession] = React.useState<AuthSession | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
+export function AuthProvider({
+  children,
+  initialSession,
+}: {
+  children: React.ReactNode;
+  initialSession?: AuthSession | null;
+}) {
+  const [service] = React.useState<AuthService>(() => new BetterAuthService());
+  const [session, setSession] = React.useState<AuthSession | null>(initialSession ?? null);
+  const [isLoading, setIsLoading] = React.useState(initialSession === undefined);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 
   React.useEffect(() => {
@@ -42,12 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const result = await service.getSession();
       if (!mounted) return;
 
-      if (result.data) {
-        setSession(result.data);
-      } else {
-        setSession(null);
-      }
-
+      setSession(result.data);
       setIsLoading(false);
     }
 
@@ -107,10 +108,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [service]
   );
 
-  const signOut = React.useCallback(async (): Promise<void> => {
-    await service.signOut();
+  const signOut = React.useCallback(async (): Promise<boolean> => {
+    const result = await service.signOut();
+    if (result.error) {
+      setErrorMessage(result.error.message);
+      return false;
+    }
+
     setSession(null);
     setErrorMessage(null);
+    return true;
   }, [service]);
 
   const updateProfile = React.useCallback(

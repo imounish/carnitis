@@ -39,17 +39,13 @@ export function SignInPageClient({ nextPath }: { nextPath: string }) {
     setPending(false);
 
     if (!ok) return;
-    router.replace(nextPath);
   }
 
   async function handleProviderClick(provider: AuthProvider) {
     setPending(true);
     clearError();
-    const ok = await signInWithOAuth(provider);
+    await signInWithOAuth(provider);
     setPending(false);
-
-    if (!ok) return;
-    router.replace(nextPath);
   }
 
   return (

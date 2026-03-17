@@ -32,8 +32,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { signOut } = useAuth();
 
   async function handleSignOut() {
-    await signOut();
-    router.replace("/sign-in");
+    const ok = await signOut();
+    if (ok) {
+      router.replace("/sign-in");
+    }
   }
 
   return (

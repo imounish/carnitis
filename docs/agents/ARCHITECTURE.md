@@ -26,6 +26,8 @@ Rules:
 - Preserve service interfaces while migrating from mock to Supabase.
 - Avoid leaking Supabase response shapes directly into UI.
 - Centralize mapping/parsing from DB rows to domain types.
+- Keep [`lib/db/api.ts`](/Users/mounish/workspace/projects/car-expense/carnitis/lib/db/api.ts) as the client-safe transitional facade while the UI still depends on mock data.
+- Put server-only Supabase access behind [`lib/db/server.ts`](/Users/mounish/workspace/projects/car-expense/carnitis/lib/db/server.ts) and [`lib/db/supabase/`](/Users/mounish/workspace/projects/car-expense/carnitis/lib/db/supabase/).
 
 ## 4. Auth Boundaries
 - Use `AuthService` interface as the contract.
@@ -43,6 +45,11 @@ Recommended environment contract:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 - `SUPABASE_SECRET_KEY` (server-only)
+
+Better Auth integration note:
+- Better Auth owns application identity, so user-owned tables should carry `owner_user_id` references to `public.user(id)`.
+- When RLS or ownership checks need the active user, use the application-scoped helper `app.current_user_id()` and set it from the server transaction context.
+- If a child table references `(id, owner_user_id)`, the parent table must expose a matching composite unique constraint or the FK will fail at migration time.
 
 ## 6. Error Handling Strategy
 - Return typed errors from services.
