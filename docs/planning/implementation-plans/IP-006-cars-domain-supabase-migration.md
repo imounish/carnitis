@@ -2,79 +2,96 @@
 
 ## Metadata
 - Task ID: `T006`, `T006A`
-- Title: Cars Domain Reads And Mutations Migration
+- Title: Cars Domain Reads + Create Migration
 - Priority: `P1`
 - Owner: AI pair session with user
-- Status: `draft`
+- Status: `in_progress` (`T006` complete and verified; `T006A` remains)
 - Related backlog item: `T006`
 
 ## 1. Problem Statement
-Cars are the root aggregate for nearly every product surface. [`getCars`](/Users/mounish/workspace/projects/car-expense/carnitis/lib/db/api.ts) and [`getCarById`](/Users/mounish/workspace/projects/car-expense/carnitis/lib/db/api.ts) feed dashboard and detail views, while car creation is used by [`components/cars/add-car-form.tsx`](/Users/mounish/workspace/projects/car-expense/carnitis/components/cars/add-car-form.tsx). This domain is the cleanest first migration because it does not require cross-table transactional logic to ship basic reads and CRUD.
+Cars are the root aggregate for nearly every product surface. The repository already has a safe Supabase data seam, but the public [`lib/db/api.ts`](/Users/mounish/.codex/worktrees/d9ef/carnitis/lib/db/api.ts) facade is still fully mock-backed and the `/cars` surfaces still fetch on the client. Without a scoped cutover, either the cars experience stays mock-only or the app risks mixing real cars with transitional downstream domains in an uncontrolled way.
 
 ## 2. Goals
-- Move car list and detail reads to Supabase first.
-- Migrate create, update, and delete after read paths are stable.
-- Preserve the existing domain shape used across the UI.
+- Move `/cars` list reads to Supabase.
+- Move `/cars/[id]` core car reads to Supabase.
+- Fold car creation into the same release so the cars flow remains coherent.
+- Preserve the existing public `lib/db` mock seam for non-car screens until their domain tasks land.
 
 ## 3. Non-Goals
-- No entry, maintenance, or todo migration in this task.
-- No redesign of car detail UX.
+- No entries, maintenance, todos, or dashboard migration in this task.
+- No update/delete flows in this task.
+- No compatibility layer that mixes real cars with mock related-domain records on the detail page.
 
 ## 4. Scope
 ### In Scope
-- Cars table, ownership, indexes, and RLS.
-- Car list and detail repository methods.
-- Car create, update, and delete repository methods.
-- Validation for car form inputs.
+- Server-loaded `/cars` list and `/cars/[id]` detail pages.
+- Cars-only detail presentation using fields already stored on `cars`.
+- `POST /api/cars` create endpoint.
+- Client form submission for add-car via the server mutation boundary.
 
 ### Out Of Scope
-- Derived stats that depend on entries or other domains unless explicitly isolated.
-- File upload/storage for car images beyond existing field handling.
+- Shared car selectors outside the cars feature.
+- Car edit/delete UI or server handlers.
+- Related tabs, charts, and data that depend on entries, maintenance, or todos.
 
 ## 5. Constraints And Assumptions
-- Technical constraints: cars are referenced by every other domain, so their ids and ownership rules must stabilize early.
-- Product constraints: all current screens that need car selection should continue working while downstream domains remain mock-backed.
-- Assumptions: a hybrid adapter phase is acceptable where car data is real but downstream lists may still be mock-backed.
+- Technical constraints:
+  - user-owned reads and writes must stay server-scoped,
+  - the public `lib/db/api.ts` contract remains mock-backed for transitional domains,
+  - the detail page cannot safely show related domain data until T007-T009 land.
+- Product constraints:
+  - the add-car flow must remain functional after reads move to Supabase.
+- Assumptions:
+  - dashboard, entries, maintenance, and todos can continue using mock car selectors temporarily,
+  - a reduced car-only detail page is acceptable until the related domains migrate.
 
 ## 6. Architecture And Design
 - Affected layers/modules:
-  - cars repository
-  - cars row mapper
-  - add/edit form validation
-  - screens using car list and detail data
+  - `app/(app)/cars/page.tsx`
+  - `app/(app)/cars/[id]/page.tsx`
+  - `app/api/cars/route.ts`
+  - `components/cars/*`
 - Data model changes:
-  - `cars.user_id` ownership column
-  - indexes for ownership and updated-at sorting
+  - no new schema required; use the existing `cars` table, indexes, and RLS.
 - Auth/security impact:
-  - every read and mutation must be scoped to the signed-in user
+  - pages load cars through `getServerDataAccess()`,
+  - create uses a server route that resolves the Better Auth session before calling the cars repository,
+  - foreign or missing cars resolve to `notFound()`.
 - Mobile-first UX approach:
-  - add/edit forms keep current ergonomics and keyboard behavior on phone widths
+  - keep the existing add-car form ergonomics,
+  - simplify the detail page rather than leaving broken or misleading related-data sections on mobile.
 
 ## 7. Implementation Steps
-1. Add the cars schema and RLS foundation.
-2. Migrate read paths:
-   - list view
-   - detail lookup
-   - shared car selectors used by other domains
-3. Migrate mutations:
-   - create
+1. Convert cars reads to server boundaries:
+   - load `/cars` from `getServerDataAccess().cars.list()`
+   - load `/cars/[id]` from `getServerDataAccess().cars.getById()`
+   - keep `lib/db/api.ts` mock-backed for non-car surfaces
+2. Refactor cars UI:
+   - make `CarsListView` prop-driven
+   - make `CarDetailView` prop-driven and car-only
+   - replace related-domain tabs with a transitional notice
+3. Add the create mutation boundary:
+   - implement `POST /api/cars`
+   - validate payloads with the shared car zod schema
+   - submit the add-car form to the route instead of the mock API
+4. Defer remaining car management to `T006A`:
    - update
-   - delete with ownership checks
-4. Verify hybrid behavior while other domains still use mock data.
+   - delete
+   - detail-page follow-up once related domains are migrated
 
 ## 8. Test Plan
 - Unit tests:
-  - car input validation
-  - row mapping
+  - car-owned summary helpers
+  - add-car form payload construction
+  - create-car API payload parsing and error serialization
 - Integration tests:
-  - user-scoped list/detail reads
-  - create/update/delete success and not-found/unauthorized cases
+  - existing repository scoping coverage from T005 remains the baseline
+  - route-level create behavior should be covered once broader request-handler integration tooling lands
 - E2E/smoke tests:
-  - add car
-  - view car detail
-  - delete or edit car where supported
-- Regression tests:
-  - forms preserve existing validation behavior and focus management
+  - signed-in user sees an empty `/cars` state when no real cars exist
+  - creating a car via `/cars/new` returns to `/cars` and shows the new record
+  - `/cars/[id]` shows the real car-owned summary for owned records
+  - foreign or missing `/cars/[id]` resolves to not-found
 
 ## 9. QA Plan
 - Responsive breakpoints to validate:
@@ -83,39 +100,44 @@ Cars are the root aggregate for nearly every product surface. [`getCars`](/Users
   - 768x1024
   - >=1280
 - Accessibility checks:
-  - labeled car form fields
-  - visible error states
-  - keyboard submission and focus return
+  - add-car labels and submission feedback remain clear
+  - empty state and transitional detail notice are readable and keyboard accessible
 - Manual user flows:
   - create first car
-  - browse car list
+  - browse cars list
   - open car detail
-  - edit and delete a car
+  - confirm dashboard/entries/maintenance/todos remain on the transitional mock car path
 
 ## 10. Rollout And Rollback
 - Rollout plan:
-  - ship reads first, then mutations
-  - keep downstream domains on mock adapters until their migrations land
+  - ship cars routes first with direct server reads
+  - ship create via `/api/cars`
+  - leave shared selectors and downstream domains on mock data until later tasks
 - Rollback plan:
-  - switch the cars repository back to the mock adapter
-  - revert car-specific migrations if necessary
+  - point `/cars` pages back to the mock facade
+  - disable the `/api/cars` route and restore add-car to the mock seam if necessary
 - Monitoring plan:
-  - failed car reads
-  - failed create/update/delete mutations
+  - failed car page loads
+  - failed create requests
+  - not-found frequency for `/cars/[id]`
 
 ## 11. Risks And Mitigations
-- Risk: other domains still expect mock car data timing and defaults.
-- Mitigation: preserve the current domain type and sort behavior during the hybrid phase.
-- Risk: deleting cars breaks downstream references.
-- Mitigation: define delete behavior and foreign key strategy before enabling real deletes.
+- Risk: real cars appear only on `/cars`, while other screens still use mock selectors.
+- Mitigation: keep the hybrid boundary explicit and documented until the dependent tasks land.
+- Risk: the detail page feels temporarily reduced.
+- Mitigation: show a clear transitional notice instead of stale or misleading mock-backed related sections.
+- Risk: create succeeds but the list does not refresh.
+- Mitigation: return to the server-rendered `/cars` route after success and refresh navigation state.
 
 ## 12. Acceptance Criteria
-- [ ] Cars list and detail reads use Supabase.
-- [ ] Car create, update, and delete use Supabase with validation and ownership checks.
-- [ ] Existing car-dependent screens still function while non-car domains remain transitional.
+- [x] `/cars` list reads use Supabase.
+- [x] `/cars/[id]` uses Supabase for the owned car record.
+- [x] Car creation uses Supabase with validation and ownership checks.
+- [x] Shared car selectors outside the cars feature remain on the mock facade during the transition.
+- [x] Update/delete remain deferred to `T006A`.
 
 ## 13. Definition Of Done Check
-- [ ] Code complete
-- [ ] Tests complete
-- [ ] Docs/plans updated
-- [ ] Quality gates passed
+- [x] Code complete
+- [x] Tests complete
+- [x] Docs/plans updated
+- [x] Quality gates passed

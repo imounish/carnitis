@@ -1,31 +1,11 @@
-"use client";
-
-import * as React from "react";
 import Link from "next/link";
-import { getCars } from "@/lib/db/api";
 import type { Car } from "@/lib/db/schema";
 import { CarCard } from "@/components/car-card";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 
-export function CarsListView() {
-  const [cars, setCars] = React.useState<Car[]>([]);
-  const [loading, setLoading] = React.useState(true);
-
-  React.useEffect(() => {
-    getCars().then((c) => {
-      setCars(c);
-      setLoading(false);
-    });
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
-    );
-  }
+export function CarsListView({ initialCars }: { initialCars: Car[] }) {
+  const cars = initialCars;
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-4 md:px-6 md:py-6 lg:py-8">

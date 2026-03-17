@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { Car } from "@/lib/db/schema";
+import { getCarTotalSpent } from "@/lib/db/cars";
 import { formatCurrency, formatMileage } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Car as CarIcon, Fuel, Wrench, ChevronRight } from "lucide-react";
@@ -22,11 +23,7 @@ function getColorDot(color: string | null) {
 }
 
 export function CarCard({ car }: { car: Car }) {
-  const totalSpent =
-    car.total_fuel_spent +
-    car.total_maintenance_spent +
-    car.total_improvements_spent +
-    car.total_repairs_spent;
+  const totalSpent = getCarTotalSpent(car);
 
   return (
     <Link href={`/cars/${car.id}`} className="group block">

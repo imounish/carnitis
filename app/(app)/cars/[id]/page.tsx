@@ -1,5 +1,7 @@
+import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { CarDetailView } from "@/components/cars/car-detail-view";
+import { getServerDataAccess } from "@/lib/db/server";
 
 export default async function CarDetailPage({
   params,
@@ -7,10 +9,16 @@ export default async function CarDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const dataAccess = await getServerDataAccess();
+  const car = await dataAccess.cars.getById(id);
+
+  if (!car) {
+    notFound();
+  }
 
   return (
     <AppShell>
-      <CarDetailView carId={id} />
+      <CarDetailView car={car} />
     </AppShell>
   );
 }

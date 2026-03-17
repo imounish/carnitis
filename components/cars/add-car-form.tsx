@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { createCar } from "@/lib/db/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +16,7 @@ import {
 import { ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { buildCreateCarInput } from "@/lib/db/car-form";
 
 export function AddCarForm() {
   const router = useRouter();
@@ -29,26 +29,34 @@ export function AddCarForm() {
     const fd = new FormData(e.currentTarget);
 
     try {
-      await createCar({
-        name: fd.get("name") as string,
-        make: fd.get("make") as string,
-        model: fd.get("model") as string,
-        year: Number(fd.get("year")),
-        vin: (fd.get("vin") as string) || null,
-        color: (fd.get("color") as string) || null,
-        license_plate: (fd.get("license_plate") as string) || null,
-        current_mileage: Number(fd.get("current_mileage")) || 0,
-        fuel_tank_capacity: fd.get("fuel_tank_capacity")
-          ? Number(fd.get("fuel_tank_capacity"))
-          : null,
-        fuel_type: (fd.get("fuel_type") as string) || "gasoline",
-        image_url: null,
-        notes: (fd.get("notes") as string) || null,
+      const response = await fetch("/api/cars", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(buildCreateCarInput(fd)),
       });
+
+      const payload = (await response.json().catch(() => null)) as
+        | { data?: { id?: string } }
+        | { error?: { message?: string } }
+        | null;
+      const errorMessage =
+        payload && "error" in payload ? payload.error?.message : undefined;
+
+      if (!response.ok) {
+        throw new Error(errorMessage || "Failed to add car.");
+      }
+
       toast.success("Car added successfully!");
       router.push("/cars");
-    } catch {
-      toast.error("Failed to add car. Please try again.");
+      router.refresh();
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to add car. Please try again."
+      );
     } finally {
       setSaving(false);
     }

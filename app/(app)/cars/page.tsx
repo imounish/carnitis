@@ -1,10 +1,14 @@
 import { AppShell } from "@/components/app-shell";
 import { CarsListView } from "@/components/cars/cars-list-view";
+import { getServerDataAccess } from "@/lib/db/server";
 
-export default function CarsPage() {
+export default async function CarsPage() {
+  const dataAccess = await getServerDataAccess();
+  const cars = await dataAccess.cars.list();
+
   return (
     <AppShell>
-      <CarsListView />
+      <CarsListView initialCars={cars} />
     </AppShell>
   );
 }

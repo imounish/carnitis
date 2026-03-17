@@ -23,8 +23,8 @@ This is the single source of truth for planned implementation work in `carnitis`
 | T005 | Data Access Layer Refactor (repository contracts + Supabase adapter seam) | P0 | done | T002, T003A | `IP-005-supabase-data-adapter-foundation.md` |
 | T005A | Supabase Schema Baseline + RLS for User-owned Data | P0 | done | T005 | `IP-005-supabase-data-adapter-foundation.md` |
 | T005B | Domain Row Mappers + Server Data Utilities | P0 | done | T005A | `IP-005-supabase-data-adapter-foundation.md` |
-| T006 | Cars Domain Reads Migration to Supabase | P1 | todo | T005B | `IP-006-cars-domain-supabase-migration.md` |
-| T006A | Cars Domain Mutations Migration to Supabase | P1 | todo | T006, T010 | `IP-006-cars-domain-supabase-migration.md` |
+| T006 | Cars Domain Reads + Create Migration to Supabase | P1 | done | T005B | `IP-006-cars-domain-supabase-migration.md` |
+| T006A | Cars Update/Delete Mutations + Detail Follow-up | P1 | todo | T006, T010 | `IP-006-cars-domain-supabase-migration.md` |
 | T007 | Entries Domain Reads Migration to Supabase | P1 | todo | T005B, T006 | `IP-007-entries-domain-supabase-migration.md` |
 | T007A | Entry Write Flows + Car Aggregate Synchronization | P0 | todo | T007, T006A, T010 | `IP-007-entries-domain-supabase-migration.md` |
 | T008 | Maintenance Domain Reads + Due-state Queries in Supabase | P1 | todo | T005B, T006 | `IP-008-maintenance-domain-supabase-migration.md` |
