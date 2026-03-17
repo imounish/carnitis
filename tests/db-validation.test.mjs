@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   parseCreateCarInput,
   parseCreateEntryInput,
+  parseUpdateCarInput,
   parseUpdateTodoInput,
 } from "../lib/db/validation.ts";
 
@@ -55,6 +56,20 @@ test("entry validation rejects malformed dates", () => {
       }),
     /Invalid|date/i
   );
+});
+
+test("car update validation accepts partial payloads and rejects empty updates", () => {
+  const parsed = parseUpdateCarInput({
+    name: "  Weekend Car  ",
+    notes: "  Ready for spring  ",
+  });
+
+  assert.deepEqual(parsed, {
+    name: "Weekend Car",
+    notes: "Ready for spring",
+  });
+
+  assert.throws(() => parseUpdateCarInput({}), /At least one car field/);
 });
 
 test("todo update validation requires at least one field", () => {

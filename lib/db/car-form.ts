@@ -1,4 +1,51 @@
-import type { CreateCarInput } from "@/lib/db/types";
+import type { Car } from "@/lib/db/schema";
+import type { CreateCarInput, UpdateCarInput } from "@/lib/db/types";
+
+const fuelTypeFallback = "gasoline";
+const editableCarKeys = [
+  "name",
+  "make",
+  "model",
+  "year",
+  "vin",
+  "color",
+  "license_plate",
+  "current_mileage",
+  "fuel_tank_capacity",
+  "fuel_type",
+  "notes",
+] as const;
+
+type CarFormSeed = Pick<
+  Car,
+  | "name"
+  | "make"
+  | "model"
+  | "year"
+  | "vin"
+  | "color"
+  | "license_plate"
+  | "current_mileage"
+  | "fuel_tank_capacity"
+  | "fuel_type"
+  | "notes"
+>;
+
+export type EditableCarInput = Omit<CreateCarInput, "image_url">;
+
+export interface CarFormValues {
+  name: string;
+  make: string;
+  model: string;
+  year: string;
+  vin: string;
+  color: string;
+  license_plate: string;
+  current_mileage: string;
+  fuel_tank_capacity: string;
+  fuel_type: string;
+  notes: string;
+}
 
 function getTrimmedValue(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -24,9 +71,12 @@ function getOptionalNumberValue(formData: FormData, key: string) {
   return value ? Number(value) : null;
 }
 
-export function buildCreateCarInput(formData: FormData): CreateCarInput {
-  const fuelType = getTrimmedValue(formData, "fuel_type");
+function getNormalizedFuelType(value: string | null | undefined) {
+  const trimmed = value?.trim() ?? "";
+  return trimmed || fuelTypeFallback;
+}
 
+function buildEditableCarInput(formData: FormData): EditableCarInput {
   return {
     name: getTrimmedValue(formData, "name"),
     make: getTrimmedValue(formData, "make"),
@@ -37,8 +87,74 @@ export function buildCreateCarInput(formData: FormData): CreateCarInput {
     license_plate: getOptionalTextValue(formData, "license_plate"),
     current_mileage: getRequiredNumberValue(formData, "current_mileage"),
     fuel_tank_capacity: getOptionalNumberValue(formData, "fuel_tank_capacity"),
-    fuel_type: fuelType || "gasoline",
-    image_url: null,
+    fuel_type: getNormalizedFuelType(getTrimmedValue(formData, "fuel_type")),
     notes: getOptionalTextValue(formData, "notes"),
   };
+}
+
+export function getDefaultCarFormValues(): CarFormValues {
+  return {
+    name: "",
+    make: "",
+    model: "",
+    year: "",
+    vin: "",
+    color: "",
+    license_plate: "",
+    current_mileage: "",
+    fuel_tank_capacity: "",
+    fuel_type: fuelTypeFallback,
+    notes: "",
+  };
+}
+
+export function getCarFormValues(car: CarFormSeed): CarFormValues {
+  return {
+    name: car.name,
+    make: car.make,
+    model: car.model,
+    year: String(car.year),
+    vin: car.vin ?? "",
+    color: car.color ?? "",
+    license_plate: car.license_plate ?? "",
+    current_mileage: String(car.current_mileage),
+    fuel_tank_capacity: car.fuel_tank_capacity == null ? "" : String(car.fuel_tank_capacity),
+    fuel_type: getNormalizedFuelType(car.fuel_type),
+    notes: car.notes ?? "",
+  };
+}
+
+export function getEditableCarInputFromCar(car: CarFormSeed): EditableCarInput {
+  return {
+    name: car.name,
+    make: car.make,
+    model: car.model,
+    year: car.year,
+    vin: car.vin,
+    color: car.color,
+    license_plate: car.license_plate,
+    current_mileage: car.current_mileage,
+    fuel_tank_capacity: car.fuel_tank_capacity,
+    fuel_type: getNormalizedFuelType(car.fuel_type),
+    notes: car.notes,
+  };
+}
+
+export function buildCreateCarInput(formData: FormData): CreateCarInput {
+  return {
+    ...buildEditableCarInput(formData),
+    image_url: null,
+  };
+}
+
+export function buildUpdateCarInput(
+  formData: FormData,
+  initialInput: EditableCarInput
+): UpdateCarInput {
+  const nextInput = buildEditableCarInput(formData);
+  return Object.fromEntries(
+    editableCarKeys
+      .filter((key) => nextInput[key] !== initialInput[key])
+      .map((key) => [key, nextInput[key]])
+  ) as UpdateCarInput;
 }

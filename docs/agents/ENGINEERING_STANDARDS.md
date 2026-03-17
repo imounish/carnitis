@@ -17,6 +17,7 @@
 - Use `"use client"` only where required.
 - Keep data fetching close to server boundaries.
 - For mutations, enforce auth + validation before state changes.
+- Keep route helper modules framework-agnostic where possible so Node-based tests can cover payload parsing and user-safe error serialization without pulling in `NextResponse`.
 
 ## 4. Supabase Conventions
 - Prefer parameterized/query-builder APIs.

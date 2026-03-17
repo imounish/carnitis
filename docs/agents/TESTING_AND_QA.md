@@ -14,6 +14,7 @@ Every code change must include tests, unless the change is documentation-only.
 - Service/data change: success path, failure path, authorization/data-scope checks.
 - Bug fix: regression test reproducing the original failure.
 - Repository or schema change: add at least one local-database integration check when the project has a reproducible local backend, and verify cross-user scoping explicitly.
+- Destructive mutation change: add ownership checks and, when foreign keys cascade, a local-database verification path that confirms related rows are removed or detached as designed.
 
 ## 4. Test Stack Guidance
 If not already configured in the touched area, establish a baseline stack:

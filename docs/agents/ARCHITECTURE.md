@@ -28,6 +28,7 @@ Rules:
 - Centralize mapping/parsing from DB rows to domain types.
 - Keep [`lib/db/api.ts`](/Users/mounish/workspace/projects/car-expense/carnitis/lib/db/api.ts) as the client-safe transitional facade while the UI still depends on mock data.
 - Put server-only Supabase access behind [`lib/db/server.ts`](/Users/mounish/workspace/projects/car-expense/carnitis/lib/db/server.ts) and [`lib/db/supabase/`](/Users/mounish/workspace/projects/car-expense/carnitis/lib/db/supabase/).
+- During partial domain migrations, move the real read/write path into feature-owned server pages and route handlers first, while leaving the shared transitional facade in place for dependent domains until their own migration tasks land.
 
 ## 4. Auth Boundaries
 - Use `AuthService` interface as the contract.
