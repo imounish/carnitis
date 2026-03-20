@@ -1,25 +1,30 @@
 "use client";
 
 import * as React from "react";
-import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
-  getCars,
-  getMaintenanceByCarId,
-  getTodosByCarId,
-  createEntry,
-} from "@/lib/db/api";
+  ChevronDown,
+  ChevronUp,
+  Fuel,
+  Plus,
+  Save,
+  Settings,
+  Wrench,
+} from "lucide-react";
 import type {
   Car,
+  Entry,
+  EntryType,
   MaintenanceScheduleItem,
   TodoItem,
-  EntryType,
-  ExpenseCategory,
 } from "@/lib/db/schema";
+import { buildCreateEntryPayloadFromFormData } from "@/lib/db/entry-payload";
+import { RecentEntryRow } from "@/components/dashboard/recent-entry-row";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -27,17 +32,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { getLocalDateInputValue } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
-import {
-  Fuel,
-  Wrench,
-  Settings,
-  Save,
-  CheckCircle2,
-  ChevronDown,
-  ChevronUp,
-} from "lucide-react";
 
 const entryTabs = [
   {
@@ -66,184 +64,146 @@ const entryTabs = [
   },
 ];
 
-export function EntryLogView() {
-  const searchParams = useSearchParams();
-  const preselectedCar = searchParams.get("car");
-  const [cars, setCars] = React.useState<Car[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [selectedCarId, setSelectedCarId] = React.useState(
-    preselectedCar ?? ""
-  );
-  const [activeTab, setActiveTab] = React.useState<EntryType>("fuel");
-  const [maintenanceItems, setMaintenanceItems] = React.useState<
-    MaintenanceScheduleItem[]
-  >([]);
-  const [todoItems, setTodoItems] = React.useState<TodoItem[]>([]);
+interface EntryLogViewProps {
+  cars: Car[];
+  selectedCarId: string;
+  selectedCar: Car | null;
+  maintenanceItems: MaintenanceScheduleItem[];
+  todoItems: TodoItem[];
+  recentEntries: Entry[];
+}
+
+export function EntryLogView({
+  cars,
+  selectedCarId,
+  selectedCar,
+  maintenanceItems,
+  todoItems,
+  recentEntries,
+}: EntryLogViewProps) {
+  const router = useRouter();
   const [saving, setSaving] = React.useState(false);
   const [showAdvanced, setShowAdvanced] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState<EntryType>("fuel");
+  const [isNavigating, startTransition] = React.useTransition();
+  const [carSelectValue, setCarSelectValue] = React.useState(selectedCarId);
 
   React.useEffect(() => {
-    getCars().then((c) => {
-      setCars(c);
-      if (!selectedCarId && c.length > 0) {
-        setSelectedCarId(c[0].id);
-      }
-      setLoading(false);
-    });
-  }, []);
-
-  React.useEffect(() => {
-    if (selectedCarId) {
-      Promise.all([
-        getMaintenanceByCarId(selectedCarId),
-        getTodosByCarId(selectedCarId),
-      ]).then(([m, t]) => {
-        setMaintenanceItems(m);
-        setTodoItems(
-          t.filter(
-            (td) => td.status !== "completed" && td.status !== "cancelled"
-          )
-        );
-      });
-    }
+    setCarSelectValue(selectedCarId);
   }, [selectedCarId]);
 
-  const selectedCar = cars.find((c) => c.id === selectedCarId);
+  React.useEffect(() => {
+    setShowAdvanced(false);
+  }, [selectedCarId, activeTab]);
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+
     if (!selectedCarId) {
       toast.error("Please select a car first.");
       return;
     }
+
     setSaving(true);
-    const fd = new FormData(e.currentTarget);
+    const formData = new FormData(form);
+    formData.set("car_id", selectedCarId);
+    formData.set("entry_type", activeTab);
 
     try {
-      const mileage = Number(fd.get("mileage"));
-      const maintenanceItemId =
-        (fd.get("maintenance_item_id") as string) || null;
-      const todoId = (fd.get("todo_id") as string) || null;
-      const notes = (fd.get("notes") as string) || null;
+      const payload = buildCreateEntryPayloadFromFormData(formData);
+      const response = await fetch("/api/entries", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
-      if (activeTab === "fuel") {
-        const gallons = Number(fd.get("fuel_gallons"));
-        const pricePerGallon = Number(fd.get("fuel_price_per_gallon"));
-        const totalCost = gallons * pricePerGallon;
-        const wasFullTank = fd.get("was_full_tank") === "on";
+      const responsePayload = (await response.json().catch(() => null)) as
+        | { data?: { id?: string } }
+        | { error?: { message?: string } }
+        | null;
 
-        await createEntry({
-          car_id: selectedCarId,
-          entry_type: "fuel",
-          date: fd.get("date") as string,
-          mileage,
-          fuel_gallons: gallons,
-          fuel_price_per_gallon: pricePerGallon,
-          fuel_total_cost: totalCost,
-          fuel_station: (fd.get("fuel_station") as string) || null,
-          fuel_octane: (fd.get("fuel_octane") as string) || null,
-          was_full_tank: wasFullTank,
-          expense_category: "fuel",
-          expense_amount: totalCost,
-          description:
-            (fd.get("description") as string) || `Fuel - ${gallons} gal`,
-          vendor: (fd.get("fuel_station") as string) || null,
-          parts_replaced: null,
-          maintenance_item_id: null,
-          todo_id: null,
-          notes,
-        });
-      } else if (activeTab === "maintenance_expense") {
-        await createEntry({
-          car_id: selectedCarId,
-          entry_type: "maintenance_expense",
-          date: fd.get("date") as string,
-          mileage,
-          fuel_gallons: null,
-          fuel_price_per_gallon: null,
-          fuel_total_cost: null,
-          fuel_station: null,
-          fuel_octane: null,
-          was_full_tank: null,
-          expense_category:
-            (fd.get("expense_category") as ExpenseCategory) ||
-            "regular_maintenance",
-          expense_amount: Number(fd.get("expense_amount")),
-          description: (fd.get("description") as string) || null,
-          vendor: (fd.get("vendor") as string) || null,
-          parts_replaced: (fd.get("parts_replaced") as string) || null,
-          maintenance_item_id:
-            maintenanceItemId !== "_none" ? maintenanceItemId : null,
-          todo_id: todoId !== "_none" ? todoId : null,
-          notes,
-        });
-      } else {
-        await createEntry({
-          car_id: selectedCarId,
-          entry_type: "maintenance_done",
-          date: fd.get("date") as string,
-          mileage,
-          fuel_gallons: null,
-          fuel_price_per_gallon: null,
-          fuel_total_cost: null,
-          fuel_station: null,
-          fuel_octane: null,
-          was_full_tank: null,
-          expense_category:
-            (fd.get("expense_category") as ExpenseCategory) ||
-            "regular_maintenance",
-          expense_amount: Number(fd.get("expense_amount") || 0) || null,
-          description: (fd.get("description") as string) || null,
-          vendor: (fd.get("vendor") as string) || null,
-          parts_replaced: (fd.get("parts_replaced") as string) || null,
-          maintenance_item_id:
-            maintenanceItemId !== "_none" ? maintenanceItemId : null,
-          todo_id: todoId !== "_none" ? todoId : null,
-          notes,
-        });
+      if (!response.ok) {
+        const errorMessage =
+          responsePayload && "error" in responsePayload
+            ? responsePayload.error?.message
+            : undefined;
+        throw new Error(errorMessage || "Failed to save entry.");
       }
 
       toast.success("Entry logged!", {
         description: selectedCar
-          ? `Updated ${selectedCar.name} to ${mileage.toLocaleString()} mi`
+          ? `Updated ${selectedCar.name} to ${payload.mileage.toLocaleString()} mi`
           : undefined,
       });
 
-      e.currentTarget.reset();
-    } catch {
-      toast.error("Failed to save entry.");
+      form.reset();
+      setShowAdvanced(false);
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to save entry."
+      );
     } finally {
       setSaving(false);
     }
   }
 
-  if (loading) {
+  function handleCarChange(nextCarId: string) {
+    setCarSelectValue(nextCarId);
+    startTransition(() => {
+      router.replace(`/entries?car=${encodeURIComponent(nextCarId)}`, {
+        scroll: false,
+      });
+    });
+  }
+
+  if (cars.length === 0 || !selectedCar) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      <div className="mx-auto flex min-h-[60vh] w-full max-w-lg flex-col items-center justify-center px-4 py-8 text-center">
+        <div className="rounded-full bg-primary/10 p-3 text-primary">
+          <Plus className="h-6 w-6" />
+        </div>
+        <h1 className="mt-4 text-xl font-bold tracking-tight text-foreground">
+          Add a car before logging entries
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Entries are tied to a specific car. Create your first car, then come
+          back here to log fuel, expenses, and service.
+        </p>
+        <Button asChild className="mt-5">
+          <Link href="/cars/new">Add Car</Link>
+        </Button>
       </div>
     );
   }
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = getLocalDateInputValue();
 
   return (
-    <div className="mx-auto w-full max-w-lg px-4 py-4 pb-28 md:px-6 md:py-6 md:pb-8 lg:py-8">
+    <div className="mx-auto w-full max-w-3xl px-4 py-4 pb-28 md:px-6 md:py-6 md:pb-8 lg:py-8">
       <div className="mb-5 md:mb-6">
         <h1 className="text-xl font-bold tracking-tight text-foreground md:text-2xl">
           Log Entry
         </h1>
         <p className="mt-0.5 text-xs text-muted-foreground md:text-sm">
-          Record a fuel stop, expense, or service done.
+          Record a fuel stop, expense, or completed service for the selected car.
         </p>
       </div>
 
-      {/* Car selector */}
       <div className="mb-4 space-y-1.5">
         <Label htmlFor="car_select" className="text-xs md:text-sm">
           Vehicle
         </Label>
-        <Select value={selectedCarId} onValueChange={setSelectedCarId}>
+        <Select
+          value={carSelectValue}
+          onValueChange={handleCarChange}
+          disabled={isNavigating}
+        >
           <SelectTrigger id="car_select" className="h-10">
             <SelectValue placeholder="Select a car" />
           </SelectTrigger>
@@ -255,14 +215,11 @@ export function EntryLogView() {
             ))}
           </SelectContent>
         </Select>
-        {selectedCar && (
-          <p className="text-[11px] text-muted-foreground">
-            Current mileage: {selectedCar.current_mileage.toLocaleString()} mi
-          </p>
-        )}
+        <p className="text-[11px] text-muted-foreground">
+          Current mileage: {selectedCar.current_mileage.toLocaleString()} mi
+        </p>
       </div>
 
-      {/* Entry type selector - pill style for mobile */}
       <div className="mb-4 flex gap-2">
         {entryTabs.map((tab) => {
           const isActive = activeTab === tab.value;
@@ -286,7 +243,9 @@ export function EntryLogView() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4 pb-16 md:pb-0">
-        {/* Common fields: date + mileage */}
+        <input type="hidden" name="car_id" value={selectedCarId} />
+        <input type="hidden" name="entry_type" value={activeTab} />
+
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label htmlFor="date" className="text-xs">
@@ -297,6 +256,7 @@ export function EntryLogView() {
               name="date"
               type="date"
               defaultValue={today}
+              max={today}
               required
               className="h-10"
             />
@@ -310,15 +270,14 @@ export function EntryLogView() {
               name="mileage"
               type="number"
               inputMode="numeric"
-              min={selectedCar?.current_mileage ?? 0}
-              placeholder={selectedCar?.current_mileage?.toString() ?? "0"}
+              min={selectedCar.current_mileage}
+              placeholder={selectedCar.current_mileage.toString()}
               required
               className="h-10"
             />
           </div>
         </div>
 
-        {/* Fuel-specific fields */}
         {activeTab === "fuel" && (
           <div className="rounded-xl border border-border bg-muted/30 p-3 md:p-4">
             <h3 className="mb-3 text-xs font-semibold text-card-foreground md:text-sm">
@@ -387,11 +346,7 @@ export function EntryLogView() {
               </div>
             </div>
             <div className="mt-3 flex items-center gap-2">
-              <Switch
-                id="was_full_tank"
-                name="was_full_tank"
-                defaultChecked
-              />
+              <Switch id="was_full_tank" name="was_full_tank" defaultChecked />
               <Label
                 htmlFor="was_full_tank"
                 className="text-xs font-normal md:text-sm"
@@ -402,7 +357,6 @@ export function EntryLogView() {
           </div>
         )}
 
-        {/* Maintenance expense fields */}
         {activeTab === "maintenance_expense" && (
           <div className="rounded-xl border border-border bg-muted/30 p-3 md:p-4">
             <h3 className="mb-3 text-xs font-semibold text-card-foreground md:text-sm">
@@ -429,20 +383,13 @@ export function EntryLogView() {
                 <Label htmlFor="expense_category_me" className="text-xs">
                   Category
                 </Label>
-                <Select
-                  name="expense_category"
-                  defaultValue="regular_maintenance"
-                >
+                <Select name="expense_category" defaultValue="regular_maintenance">
                   <SelectTrigger id="expense_category_me" className="h-10">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="regular_maintenance">
-                      Regular
-                    </SelectItem>
-                    <SelectItem value="preventive_maintenance">
-                      Preventive
-                    </SelectItem>
+                    <SelectItem value="regular_maintenance">Regular</SelectItem>
+                    <SelectItem value="preventive_maintenance">Preventive</SelectItem>
                     <SelectItem value="improvements">Improvement</SelectItem>
                     <SelectItem value="repairs">Repair</SelectItem>
                   </SelectContent>
@@ -486,7 +433,6 @@ export function EntryLogView() {
           </div>
         )}
 
-        {/* Maintenance done (no required cost) */}
         {activeTab === "maintenance_done" && (
           <div className="rounded-xl border border-border bg-muted/30 p-3 md:p-4">
             <h3 className="mb-3 text-xs font-semibold text-card-foreground md:text-sm">
@@ -509,20 +455,13 @@ export function EntryLogView() {
                 <Label htmlFor="expense_category_md" className="text-xs">
                   Category
                 </Label>
-                <Select
-                  name="expense_category"
-                  defaultValue="regular_maintenance"
-                >
+                <Select name="expense_category" defaultValue="regular_maintenance">
                   <SelectTrigger id="expense_category_md" className="h-10">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="regular_maintenance">
-                      Regular
-                    </SelectItem>
-                    <SelectItem value="preventive_maintenance">
-                      Preventive
-                    </SelectItem>
+                    <SelectItem value="regular_maintenance">Regular</SelectItem>
+                    <SelectItem value="preventive_maintenance">Preventive</SelectItem>
                     <SelectItem value="improvements">Improvement</SelectItem>
                     <SelectItem value="repairs">Repair</SelectItem>
                   </SelectContent>
@@ -569,14 +508,13 @@ export function EntryLogView() {
           </div>
         )}
 
-        {/* Advanced: Link to maintenance/todo - collapsible for mobile */}
         {(activeTab === "maintenance_expense" ||
           activeTab === "maintenance_done") &&
           (maintenanceItems.length > 0 || todoItems.length > 0) && (
             <div>
               <button
                 type="button"
-                onClick={() => setShowAdvanced(!showAdvanced)}
+                onClick={() => setShowAdvanced((current) => !current)}
                 className="flex w-full items-center justify-between rounded-lg bg-muted/50 px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted"
               >
                 <span>Link to schedule / task</span>
@@ -590,20 +528,11 @@ export function EntryLogView() {
                 <div className="mt-2 space-y-3">
                   {maintenanceItems.length > 0 && (
                     <div className="space-y-1.5">
-                      <Label
-                        htmlFor="maintenance_item_id"
-                        className="text-xs"
-                      >
+                      <Label htmlFor="maintenance_item_id" className="text-xs">
                         Maintenance Schedule Item
                       </Label>
-                      <Select
-                        name="maintenance_item_id"
-                        defaultValue="_none"
-                      >
-                        <SelectTrigger
-                          id="maintenance_item_id"
-                          className="h-10"
-                        >
+                      <Select name="maintenance_item_id" defaultValue="_none">
+                        <SelectTrigger id="maintenance_item_id" className="h-10">
                           <SelectValue placeholder="None" />
                         </SelectTrigger>
                         <SelectContent>
@@ -619,7 +548,7 @@ export function EntryLogView() {
                         </SelectContent>
                       </Select>
                       <p className="text-[10px] text-muted-foreground">
-                        Resets the maintenance interval.
+                        Resets the maintenance interval on the linked item.
                       </p>
                     </div>
                   )}
@@ -642,7 +571,7 @@ export function EntryLogView() {
                         </SelectContent>
                       </Select>
                       <p className="text-[10px] text-muted-foreground">
-                        Marks this task as completed.
+                        Marks the linked task as completed inside the same write.
                       </p>
                     </div>
                   )}
@@ -651,7 +580,6 @@ export function EntryLogView() {
             </div>
           )}
 
-        {/* Notes */}
         <div className="space-y-1.5">
           <Label htmlFor="notes" className="text-xs">
             Notes
@@ -665,11 +593,10 @@ export function EntryLogView() {
           />
         </div>
 
-        {/* Submit */}
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 px-4 py-3 backdrop-blur-md safe-bottom-pad md:static md:border-0 md:bg-transparent md:px-0 md:py-0 md:backdrop-blur-none">
           <Button
             type="submit"
-            disabled={saving}
+            disabled={saving || isNavigating}
             className="h-11 w-full text-sm font-semibold"
             size="lg"
           >
@@ -687,6 +614,30 @@ export function EntryLogView() {
           </Button>
         </div>
       </form>
+
+      <section className="mt-6 rounded-xl border border-border bg-card">
+        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+          <div>
+            <h2 className="text-sm font-semibold text-card-foreground md:text-base">
+              Recent Entries
+            </h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Recent real entries for {selectedCar.name}.
+            </p>
+          </div>
+        </div>
+        {recentEntries.length === 0 ? (
+          <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+            No entries logged for this car yet.
+          </div>
+        ) : (
+          <div className="divide-y divide-border">
+            {recentEntries.map((entry) => (
+              <RecentEntryRow key={entry.id} entry={entry} />
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

@@ -1,3 +1,29 @@
+const DAY_IN_MS = 1000 * 60 * 60 * 24;
+
+function isDateOnlyString(dateStr: string) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(dateStr);
+}
+
+function parseDateInput(dateStr: string) {
+  if (isDateOnlyString(dateStr)) {
+    const [year, month, day] = dateStr.split("-").map(Number);
+    return new Date(year, month - 1, day);
+  }
+
+  return new Date(dateStr);
+}
+
+function startOfLocalDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+export function getLocalDateInputValue(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -15,7 +41,11 @@ export function formatMileage(miles: number): string {
 }
 
 export function formatDate(dateStr: string): string {
-  const d = new Date(dateStr + "T00:00:00");
+  const d = parseDateInput(dateStr);
+  if (Number.isNaN(d.getTime())) {
+    return dateStr;
+  }
+
   return d.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
@@ -24,11 +54,17 @@ export function formatDate(dateStr: string): string {
 }
 
 export function formatDateRelative(dateStr: string): string {
-  const now = new Date();
-  const d = new Date(dateStr + "T00:00:00");
-  const diff = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+  const d = parseDateInput(dateStr);
+  if (Number.isNaN(d.getTime())) {
+    return dateStr;
+  }
+
+  const today = startOfLocalDay(new Date());
+  const valueDay = startOfLocalDay(d);
+  const diff = Math.floor((today.getTime() - valueDay.getTime()) / DAY_IN_MS);
   if (diff === 0) return "Today";
   if (diff === 1) return "Yesterday";
+  if (diff < 0) return formatDate(dateStr);
   if (diff < 7) return `${diff} days ago`;
   if (diff < 30) return `${Math.floor(diff / 7)} weeks ago`;
   return formatDate(dateStr);
