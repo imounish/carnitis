@@ -29,6 +29,7 @@ Add scripts to `package.json` when introducing test infrastructure:
 - `test:unit`
 - `test:integration`
 - `test:e2e` (when applicable)
+- When adding client-form component coverage, prefer freezing only `Date` instead of all timers so user-event and mocked network behavior stay realistic.
 
 ## 5. Quality Gates
 Run what applies:
@@ -63,3 +64,5 @@ For each PR, explicitly state:
 - Do not use semicolon-separated multi-statement cleanup SQL with `pg` prepared queries in integration tests. Execute one statement per query or use a helper that does so.
 - When result ordering depends on timestamps, make test fixtures deterministic with explicit `created_at` values instead of relying on insertion order within a multi-row insert.
 - If local DB tests surface a schema/design issue, stop implementation, return briefly to planning, and fix the underlying schema rather than weakening the test to fit the bug.
+- Client-side submit/reset/refresh flows should have at least one component-level automated regression test when they drive critical product workflows.
+- For temporal logic, add direct regression coverage for date-only parsing, explicit-timezone timestamp formatting, and end-of-month month-add behavior. Do not rely on the machine timezone or implicit JavaScript date parsing in tests.

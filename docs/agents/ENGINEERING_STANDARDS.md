@@ -34,6 +34,13 @@
 - Route handlers should authenticate, parse, and hand off; they should not duplicate multi-table business logic that already exists in the repository seam.
 - If the UI filters selectable linked rows by status, mirror that eligibility rule inside the transaction workflow so crafted requests cannot bypass the intended state machine.
 
+## 4B. Temporal Logic Standards
+- Do not use `new Date("YYYY-MM-DD")` for business-date parsing. Parse date-only values into local calendar dates explicitly.
+- Do not use `toISOString().split("T")[0]` to synthesize business dates.
+- Do not rely on `setMonth()` overflow semantics for due-date scheduling; clamp end-of-month behavior deliberately.
+- Keep pure temporal helpers in a shared seam so both mock and Supabase paths use the same date logic.
+- For client component tests, keep router, toast, and network calls mockable at the boundary instead of burying them in opaque side-effect helpers.
+
 ## 5. Error And State Handling
 - Use typed result patterns for expected failures.
 - Throw exceptions only for truly exceptional cases.

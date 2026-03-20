@@ -59,6 +59,13 @@ Better Auth integration note:
 - Separate user-safe messages from internal diagnostics.
 - Never expose secrets, raw SQL errors, or stack traces in user UI.
 
+## 6A. Temporal Data Boundaries
+- Treat calendar-day values and real instants as different architectural concepts.
+- Keep business dates such as entry dates, due dates, and maintenance schedule dates as `YYYY-MM-DD` strings all the way through the domain layer.
+- Keep real instants such as `created_at`, `updated_at`, and `completed_at` as ISO UTC timestamps.
+- Centralize date-only parsing, date-only arithmetic, and timestamp display helpers in one shared module; do not spread raw `Date` logic across features.
+- If a temporal bug appears, audit whether the issue is in storage semantics or helper duplication before reaching for a schema migration.
+
 ## 7. Performance Strategy
 - Prefer Server Components by default.
 - Use Client Components only when interactivity/browser APIs are required.
