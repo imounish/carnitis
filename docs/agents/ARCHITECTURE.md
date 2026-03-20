@@ -51,6 +51,8 @@ Better Auth integration note:
 - Better Auth owns application identity, so user-owned tables should carry `owner_user_id` references to `public.user(id)`.
 - When RLS or ownership checks need the active user, use the application-scoped helper `app.current_user_id()` and set it from the server transaction context.
 - If a child table references `(id, owner_user_id)`, the parent table must expose a matching composite unique constraint or the FK will fail at migration time.
+- Do not use `on delete set null` on composite FKs that include non-null ownership columns. For detachable links such as `todo_items.linked_entry_id`, keep the nullable link column separate from `owner_user_id` and enforce ownership in RLS plus repository checks.
+- If a route is write-first and the UX depends on route-local reads, prefer a single route-owned cutover over an artificial “reads first, writes later” split.
 
 ## 6. Error Handling Strategy
 - Return typed errors from services.

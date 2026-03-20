@@ -9,6 +9,7 @@
 ## 2. TypeScript And Validation
 - Define shared domain types in a clear boundary module.
 - Validate external input with `zod` at boundaries.
+- Route-level parsing is not a substitute for repository/domain validation. Public service seams still need canonical validation even when a route already normalized the payload.
 - Do not trust client payloads or URL params without parsing.
 - Model nullable/optional states explicitly.
 
@@ -26,6 +27,12 @@
 - Every migration must be reversible or have a documented rollback plan.
 - With Better Auth, do not build ownership policies around `auth.uid()`. Use app-owned user ids and a server-set transaction context instead.
 - For user-owned child tables, prefer redundant `owner_user_id` columns plus composite `(id, owner_user_id)` references so cross-table ownership can be enforced in the database.
+- Exception: if a relationship is intentionally detachable with `on delete set null`, do not include non-null ownership columns in that nullable FK. Keep the referential link on the nullable id column and enforce same-user/same-car checks in the transaction workflow.
+
+## 4A. Transaction Boundaries
+- Cross-entity write flows belong behind one server-owned transaction boundary in the repository/data-access layer, not in client components or route handlers.
+- Route handlers should authenticate, parse, and hand off; they should not duplicate multi-table business logic that already exists in the repository seam.
+- If the UI filters selectable linked rows by status, mirror that eligibility rule inside the transaction workflow so crafted requests cannot bypass the intended state machine.
 
 ## 5. Error And State Handling
 - Use typed result patterns for expected failures.
@@ -50,3 +57,4 @@ Before marking work complete:
 - ensure naming consistency with existing code,
 - verify no unrelated refactors slipped into the diff,
 - confirm documentation/tests updated for behavior changes.
+- When pure request-parsing or workflow helper logic can be isolated, keep it framework-agnostic so the Node test runner can exercise it without booting Next.js.

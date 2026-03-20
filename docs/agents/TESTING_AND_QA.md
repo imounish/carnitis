@@ -15,6 +15,8 @@ Every code change must include tests, unless the change is documentation-only.
 - Bug fix: regression test reproducing the original failure.
 - Repository or schema change: add at least one local-database integration check when the project has a reproducible local backend, and verify cross-user scoping explicitly.
 - Destructive mutation change: add ownership checks and, when foreign keys cascade, a local-database verification path that confirms related rows are removed or detached as designed.
+- For transactional multi-table workflows, DB-backed integration tests are mandatory. Unit tests are not enough to catch FK, timestamp, or rollback behavior.
+- When a route also performs payload normalization, add separate coverage that the underlying repository/service seam still rejects invalid direct calls.
 
 ## 4. Test Stack Guidance
 If not already configured in the touched area, establish a baseline stack:
@@ -34,6 +36,7 @@ Run what applies:
 - `npx tsc --noEmit`
 - relevant test command(s)
 - `npm run build` for deployment-impacting changes
+- When local Supabase is available, rerun the integration suite against the real local database instead of accepting sandbox skips as sufficient completion.
 
 ## 6. Mobile-First QA Matrix
 At minimum validate on:
@@ -55,3 +58,8 @@ For each PR, explicitly state:
 - what could break,
 - where rollback is needed,
 - whether data migration/security behavior changed.
+
+## 8. Learnings From Recent Supabase Work
+- Do not use semicolon-separated multi-statement cleanup SQL with `pg` prepared queries in integration tests. Execute one statement per query or use a helper that does so.
+- When result ordering depends on timestamps, make test fixtures deterministic with explicit `created_at` values instead of relying on insertion order within a multi-row insert.
+- If local DB tests surface a schema/design issue, stop implementation, return briefly to planning, and fix the underlying schema rather than weakening the test to fit the bug.
