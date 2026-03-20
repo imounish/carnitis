@@ -34,3 +34,15 @@ test("preserves explicit data access errors", () => {
 
   assert.equal(result, original);
 });
+
+test("normalizes data-access-like workflow errors into data access errors", () => {
+  const result = normalizeDataAccessError({
+    code: "not_found",
+    status: 404,
+    message: "That car could not be found.",
+  });
+
+  assert.equal(result.code, "not_found");
+  assert.equal(result.status, 404);
+  assert.equal(result.message, "That car could not be found.");
+});

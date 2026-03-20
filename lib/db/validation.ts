@@ -44,6 +44,14 @@ const nonEmptyString = z.string().trim().min(1);
 const isoDateString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const numberField = z.number().finite().nonnegative();
 
+function getTodayDateString() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export const createCarInputSchema = z.object({
   name: nonEmptyString,
   make: nonEmptyString,
@@ -68,7 +76,9 @@ export const updateCarInputSchema = createCarInputSchema
 export const createEntryInputSchema = z.object({
   car_id: nonEmptyString,
   entry_type: z.enum(entryTypes),
-  date: isoDateString,
+  date: isoDateString.refine((value) => value <= getTodayDateString(), {
+    message: "Entry date cannot be in the future.",
+  }),
   mileage: numberField,
   fuel_gallons: numberField.nullable(),
   fuel_price_per_gallon: numberField.nullable(),

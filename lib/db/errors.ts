@@ -54,6 +54,12 @@ type PostgresLikeError = {
   message?: string;
 };
 
+type DataAccessErrorLike = {
+  code?: string;
+  message?: string;
+  status?: number;
+};
+
 export function isDataAccessError(error: unknown): error is DataAccessError {
   return error instanceof DataAccessError;
 }
@@ -64,6 +70,32 @@ export function normalizeDataAccessError(
 ): DataAccessError {
   if (error instanceof DataAccessError) {
     return error;
+  }
+
+  const dataAccessLike = error as DataAccessErrorLike;
+  if (
+    dataAccessLike &&
+    typeof dataAccessLike === "object" &&
+    typeof dataAccessLike.code === "string" &&
+    typeof dataAccessLike.message === "string" &&
+    [
+      "validation",
+      "unauthorized",
+      "forbidden",
+      "not_found",
+      "conflict",
+      "unsupported",
+      "unexpected",
+    ].includes(dataAccessLike.code)
+  ) {
+    return new DataAccessError(
+      dataAccessLike.code as DataAccessErrorCode,
+      dataAccessLike.message,
+      {
+        cause: error,
+        status: dataAccessLike.status,
+      }
+    );
   }
 
   if (error instanceof ZodError) {

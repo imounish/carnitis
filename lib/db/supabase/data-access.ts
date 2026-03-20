@@ -1,12 +1,15 @@
 import "server-only";
 
 import type { Kysely } from "kysely";
+import { getPostgresPool } from "@/lib/postgres";
 import type { DataAccess, RepositoryContext } from "@/lib/db/contracts";
 import { logDataAccessError } from "@/lib/db/logger";
 import type { Car, MaintenanceItemStatus, TodoStatus } from "@/lib/db/schema";
 import { mapCarRow, mapEntryRow, mapMaintenanceItemRow, mapTodoRow } from "@/lib/db/supabase/mappers";
 import { withUserDatabase } from "@/lib/db/supabase/scoped-db";
 import type { AppDatabase } from "@/lib/db/supabase/schema";
+import { listEntriesByCarIdQuery } from "@/lib/db/supabase/entry-queries";
+import { createEntryWorkflow } from "@/lib/db/supabase/entry-workflow";
 import {
   parseCreateCarInput,
   parseCreateEntryInput,
@@ -234,21 +237,12 @@ export function createSupabaseDataAccess(context: RepositoryContext): DataAccess
     entries: {
       async listByCarId(carId, entryType) {
         try {
-          const rows = await withUserDatabase(context.userId, async (db) => {
-            let query = db
-              .selectFrom("entries")
-              .selectAll()
-              .where("owner_user_id", "=", context.userId)
-              .where("car_id", "=", carId);
-
-            if (entryType) {
-              query = query.where("entry_type", "=", entryType);
-            }
-
-            return query.orderBy("date", "desc").orderBy("created_at", "desc").execute();
+          return listEntriesByCarIdQuery({
+            db: getPostgresPool(),
+            userId: context.userId,
+            carId,
+            entryType,
           });
-
-          return rows.map(mapEntryRow);
         } catch (error) {
           throw logDataAccessError(
             {
@@ -314,38 +308,11 @@ export function createSupabaseDataAccess(context: RepositoryContext): DataAccess
       async create(input) {
         try {
           const entry = parseCreateEntryInput(input);
-          const now = new Date();
-          const row = await withUserDatabase(context.userId, async (db) =>
-            db
-              .insertInto("entries")
-              .values({
-                owner_user_id: context.userId,
-                car_id: entry.car_id,
-                entry_type: entry.entry_type,
-                date: entry.date,
-                mileage: entry.mileage,
-                fuel_gallons: entry.fuel_gallons,
-                fuel_price_per_gallon: entry.fuel_price_per_gallon,
-                fuel_total_cost: entry.fuel_total_cost,
-                fuel_station: entry.fuel_station,
-                fuel_octane: entry.fuel_octane,
-                was_full_tank: entry.was_full_tank,
-                expense_category: entry.expense_category,
-                expense_amount: entry.expense_amount,
-                description: entry.description,
-                vendor: entry.vendor,
-                parts_replaced: entry.parts_replaced,
-                maintenance_item_id: entry.maintenance_item_id,
-                todo_id: entry.todo_id,
-                notes: entry.notes,
-                created_at: now,
-                updated_at: now,
-              })
-              .returningAll()
-              .executeTakeFirstOrThrow()
-          );
-
-          return mapEntryRow(row);
+          return createEntryWorkflow({
+            db: getPostgresPool(),
+            userId: context.userId,
+            input: entry,
+          });
         } catch (error) {
           throw logDataAccessError(
             { operation: "create", entity: "entry", userId: context.userId },
