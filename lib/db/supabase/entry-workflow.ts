@@ -2,6 +2,7 @@ import type { Pool, PoolClient } from "pg";
 import type { CreateEntryInput } from "../types";
 import type { Entry } from "../schema";
 import type { EntryRow, NumericValue, TimestampValue } from "./schema";
+import { addMonthsToIsoDateClamped } from "../../time.js";
 
 type Queryable = Pool | PoolClient;
 
@@ -202,7 +203,10 @@ export async function createEntryWorkflow({
           entry.date,
           entry.mileage + maintenanceLink.interval_miles,
           maintenanceLink.interval_months
-            ? addMonthsToIsoDate(entry.date, maintenanceLink.interval_months)
+            ? addMonthsToIsoDateClamped(
+                entry.date,
+                maintenanceLink.interval_months
+              )
             : null,
         ]
       );
@@ -238,12 +242,6 @@ export async function createEntryWorkflow({
       client.release();
     }
   }
-}
-
-function addMonthsToIsoDate(isoDate: string, months: number) {
-  const date = new Date(`${isoDate}T00:00:00.000Z`);
-  date.setUTCMonth(date.getUTCMonth() + months);
-  return date.toISOString().slice(0, 10);
 }
 
 function createDataAccessLikeError(

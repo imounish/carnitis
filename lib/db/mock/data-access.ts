@@ -16,6 +16,10 @@ import {
   parseUpdateMaintenanceItemInput,
   parseUpdateTodoInput,
 } from "@/lib/db/validation";
+import {
+  addMonthsToIsoDateClamped,
+  compareIsoDateStringsDesc,
+} from "@/lib/time";
 
 const delay = (ms = 50) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -39,6 +43,17 @@ const todoPriorityOrder = {
   medium: 2,
   low: 3,
 };
+
+function compareEntriesDesc<
+  TEntry extends { date: string; created_at: string }
+>(left: TEntry, right: TEntry) {
+  const byDate = compareIsoDateStringsDesc(left.date, right.date);
+  if (byDate !== 0) {
+    return byDate;
+  }
+
+  return right.created_at.localeCompare(left.created_at);
+}
 
 export function createMockDataAccess(): DataAccess {
   return {
@@ -116,19 +131,13 @@ export function createMockDataAccess(): DataAccess {
           entries = entries.filter((entry) => entry.entry_type === entryType);
         }
 
-        return entries.sort(
-          (left, right) =>
-            new Date(right.date).getTime() - new Date(left.date).getTime()
-        );
+        return entries.sort(compareEntriesDesc);
       },
       async listRecent(limit = 10) {
         await delay();
 
         return [...mockEntries]
-          .sort(
-            (left, right) =>
-              new Date(right.date).getTime() - new Date(left.date).getTime()
-          )
+          .sort(compareEntriesDesc)
           .slice(0, limit)
           .map((entry) => ({
             ...entry,
@@ -186,9 +195,10 @@ export function createMockDataAccess(): DataAccess {
               item.next_due_mileage = entry.mileage + item.interval_miles;
 
               if (item.interval_months) {
-                const nextDueDate = new Date(entry.date);
-                nextDueDate.setMonth(nextDueDate.getMonth() + item.interval_months);
-                item.next_due_date = nextDueDate.toISOString().split("T")[0];
+                item.next_due_date = addMonthsToIsoDateClamped(
+                  entry.date,
+                  item.interval_months
+                );
               }
 
               item.status = "upcoming";

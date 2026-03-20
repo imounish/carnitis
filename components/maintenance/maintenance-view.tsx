@@ -9,10 +9,13 @@ import {
 import type { Car, MaintenanceScheduleItem } from "@/lib/db/schema";
 import {
   formatMileage,
-  formatDate,
   formatCurrency,
   getStatusLabel,
 } from "@/lib/format";
+import {
+  addMonthsToIsoDateClamped,
+  getTodayLocalDateString,
+} from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -89,11 +92,10 @@ export function MaintenanceView() {
           ? car.current_mileage + intervalMiles
           : intervalMiles,
         next_due_date: intervalMonths
-          ? (() => {
-              const d = new Date();
-              d.setMonth(d.getMonth() + intervalMonths);
-              return d.toISOString().split("T")[0];
-            })()
+          ? addMonthsToIsoDateClamped(
+              getTodayLocalDateString(),
+              intervalMonths
+            )
           : null,
         status: "upcoming",
         estimated_cost: fd.get("estimated_cost")
