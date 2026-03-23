@@ -13,6 +13,7 @@
   - `refactor(scope): ...`
   - `test(scope): ...`
   - `docs(scope): ...`
+- If a task is intentionally planned as stacked subtasks but implemented on one branch, preserve the subtask boundaries as separate commits so review and rollback stay targeted.
 
 ## 3. PR Standards
 Each PR should include:

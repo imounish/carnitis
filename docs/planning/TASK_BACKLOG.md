@@ -27,9 +27,9 @@ This is the single source of truth for planned implementation work in `carnitis`
 | T006A | Cars Update/Delete Mutations + Detail Follow-up | P1 | done | T006, T010 | `IP-006-cars-domain-supabase-migration.md` |
 | T007 | Entries Feature Full Cutover (reads + writes + in-feature linkage) | P0 | done | T005B, T006, T006A, T010 | `IP-007-entries-domain-supabase-migration.md` |
 | T007A | Entry Write Flows + Car Aggregate Synchronization | P0 | done | T007 | `IP-007-entries-domain-supabase-migration.md` |
-| T008 | Maintenance Domain Reads + Due-state Queries in Supabase | P1 | todo | T005B, T006 | `IP-008-maintenance-domain-supabase-migration.md` |
-| T008A | Maintenance Mutations + Scheduling Recalculation | P1 | todo | T008, T010 | `IP-008-maintenance-domain-supabase-migration.md` |
-| T008B | Maintenance Route Convergence After Entry-linked Completion | P1 | todo | T008A, T007 | `IP-008-maintenance-domain-supabase-migration.md` |
+| T008 | Maintenance Route Reads + Create Cutover To Supabase | P1 | done | T005B, T006 | `IP-008-maintenance-domain-supabase-migration.md` |
+| T008A | Maintenance Edit/Delete + Scheduling Recalculation | P1 | done | T008, T010 | `IP-008-maintenance-domain-supabase-migration.md` |
+| T008B | Maintenance Route Convergence With Entry-linked Service Logging | P1 | done | T008A, T007 | `IP-008-maintenance-domain-supabase-migration.md` |
 | T009 | Todo Domain Reads + CRUD in Supabase | P1 | todo | T005B, T006 | `IP-009-todos-domain-supabase-migration.md` |
 | T009A | Todo Route Convergence After Entry-linked Completion | P1 | todo | T009, T007 | `IP-009-todos-domain-supabase-migration.md` |
 | T010 | Unified Form + Server Boundary Validation (zod) | P1 | done | T002, T005 | `IP-005-supabase-data-adapter-foundation.md` |
@@ -52,5 +52,6 @@ This is the single source of truth for planned implementation work in `carnitis`
 - Cross-entity write strategy: entry creation, maintenance completion, and todo completion must run in one server-side transactional workflow; do not scatter those updates across client components.
 - Entry-linkage strategy: entry-driven maintenance and todo updates now land in `T007`; later maintenance/todo tasks should converge their standalone routes onto the same real domain state rather than reimplementing the linkage behavior.
 - Temporal data strategy: use `DATE`/`YYYY-MM-DD` strings for calendar-day values that must not shift by timezone, and ISO UTC timestamps for real instants; do not mix the two semantics inside shared helpers.
+- Maintenance migration strategy: treat maintenance `status` as server-derived output from canonical due fields plus current mileage, not as client-authored business state.
 - Plan files should define rollback strategy and manual QA scenarios.
 - `T013A` is mandatory and should be considered cross-cutting in all feature work (touch targets, thumb reach, keyboard handling, safe areas, and reduced cognitive load on mobile).

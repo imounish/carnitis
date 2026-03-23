@@ -29,6 +29,7 @@ Rules:
 - Keep [`lib/db/api.ts`](/Users/mounish/workspace/projects/car-expense/carnitis/lib/db/api.ts) as the client-safe transitional facade while the UI still depends on mock data.
 - Put server-only Supabase access behind [`lib/db/server.ts`](/Users/mounish/workspace/projects/car-expense/carnitis/lib/db/server.ts) and [`lib/db/supabase/`](/Users/mounish/workspace/projects/car-expense/carnitis/lib/db/supabase/).
 - During partial domain migrations, move the real read/write path into feature-owned server pages and route handlers first, while leaving the shared transitional facade in place for dependent domains until their own migration tasks land.
+- If a route owns both its primary reads and its primary mutations, complete the feature route cutover there before converging shared surfaces. Maintenance followed the same pattern as entries: the route became real first while dashboard alerts stayed transitional.
 
 ## 4. Auth Boundaries
 - Use `AuthService` interface as the contract.
@@ -53,6 +54,8 @@ Better Auth integration note:
 - If a child table references `(id, owner_user_id)`, the parent table must expose a matching composite unique constraint or the FK will fail at migration time.
 - Do not use `on delete set null` on composite FKs that include non-null ownership columns. For detachable links such as `todo_items.linked_entry_id`, keep the nullable link column separate from `owner_user_id` and enforce ownership in RLS plus repository checks.
 - If a route is write-first and the UX depends on route-local reads, prefer a single route-owned cutover over an artificial “reads first, writes later” split.
+- Treat maintenance `status` as derived server-owned output from canonical due fields plus current mileage/date. Persist it for convenience, but do not trust the stored value on reads when the canonical inputs are already available.
+- When two routes can express the same business event, converge on one transactional path rather than duplicating logic. Maintenance completion now routes through `/entries` instead of adding a second maintenance-only completion workflow.
 
 ## 6. Error Handling Strategy
 - Return typed errors from services.
@@ -65,6 +68,7 @@ Better Auth integration note:
 - Keep real instants such as `created_at`, `updated_at`, and `completed_at` as ISO UTC timestamps.
 - Centralize date-only parsing, date-only arithmetic, and timestamp display helpers in one shared module; do not spread raw `Date` logic across features.
 - If a temporal bug appears, audit whether the issue is in storage semantics or helper duplication before reaching for a schema migration.
+- Normalize Postgres `DATE` columns in the row-mapper seam before they enter domain helpers. Some drivers surface them as `Date` objects, and allowing that shape to leak into date-only business logic will break local-date comparisons and formatting.
 
 ## 7. Performance Strategy
 - Prefer Server Components by default.

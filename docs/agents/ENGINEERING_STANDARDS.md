@@ -33,6 +33,7 @@
 - Cross-entity write flows belong behind one server-owned transaction boundary in the repository/data-access layer, not in client components or route handlers.
 - Route handlers should authenticate, parse, and hand off; they should not duplicate multi-table business logic that already exists in the repository seam.
 - If the UI filters selectable linked rows by status, mirror that eligibility rule inside the transaction workflow so crafted requests cannot bypass the intended state machine.
+- Derived business state such as maintenance due status should be recomputed server-side from canonical inputs on reads and writes. Do not expose it as a free-form client-controlled field just because the table stores it.
 
 ## 4B. Temporal Logic Standards
 - Do not use `new Date("YYYY-MM-DD")` for business-date parsing. Parse date-only values into local calendar dates explicitly.
@@ -40,6 +41,7 @@
 - Do not rely on `setMonth()` overflow semantics for due-date scheduling; clamp end-of-month behavior deliberately.
 - Keep pure temporal helpers in a shared seam so both mock and Supabase paths use the same date logic.
 - For client component tests, keep router, toast, and network calls mockable at the boundary instead of burying them in opaque side-effect helpers.
+- Normalize DB row values to domain semantics in the mapper layer. If a domain helper expects `YYYY-MM-DD` strings, do not let raw `Date` instances from the driver leak past the mapper boundary.
 
 ## 5. Error And State Handling
 - Use typed result patterns for expected failures.
