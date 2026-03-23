@@ -138,6 +138,9 @@ describe("EntryLogView success path", () => {
     await waitFor(() => {
       expect(routerSpies.refresh).toHaveBeenCalledTimes(1);
     });
+    expect(routerSpies.replace).toHaveBeenCalledWith("/entries?car=car-1", {
+      scroll: false,
+    });
 
     expect(capturedPayload).toEqual({
       car_id: "car-1",
@@ -217,6 +220,9 @@ describe("EntryLogView success path", () => {
     await waitFor(() => {
       expect(routerSpies.refresh).toHaveBeenCalledTimes(1);
     });
+    expect(routerSpies.replace).toHaveBeenCalledWith("/entries?car=car-1", {
+      scroll: false,
+    });
 
     expect(capturedPayload).toEqual({
       car_id: "car-1",
@@ -254,5 +260,55 @@ describe("EntryLogView success path", () => {
     expect(
       (screen.getByLabelText(/^Description/i) as HTMLInputElement).value
     ).toBe("");
+  });
+
+  it("prefills service mode from maintenance and keeps the linked item in the payload", async () => {
+    let capturedPayload: Record<string, unknown> | null = null;
+
+    server.use(
+      http.post("/api/entries", async ({ request }) => {
+        capturedPayload = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ data: { id: "entry-3" } });
+      })
+    );
+
+    const user = userEvent.setup();
+
+    render(
+      <EntryLogView
+        cars={[car]}
+        selectedCarId={car.id}
+        selectedCar={car}
+        maintenanceItems={[maintenanceItem]}
+        todoItems={[todoItem]}
+        recentEntries={[]}
+        initialEntryType="maintenance_done"
+        initialShowAdvanced
+        preselectedMaintenanceItemId={maintenanceItem.id}
+      />
+    );
+
+    expect(
+      screen.getByText(/Resets the maintenance interval on the linked item/i)
+    ).toBeTruthy();
+
+    await user.type(screen.getByLabelText(/Odometer/i), "12480");
+    await user.type(screen.getByLabelText(/^Description/i), "Linked service");
+    await user.click(screen.getByRole("button", { name: /Save Entry/i }));
+
+    await waitFor(() => {
+      expect(routerSpies.refresh).toHaveBeenCalledTimes(1);
+    });
+
+    expect(capturedPayload).toMatchObject({
+      car_id: "car-1",
+      entry_type: "maintenance_done",
+      maintenance_item_id: maintenanceItem.id,
+      mileage: 12480,
+      description: "Linked service",
+    });
+    expect(routerSpies.replace).toHaveBeenCalledWith("/entries?car=car-1", {
+      scroll: false,
+    });
   });
 });

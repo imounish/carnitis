@@ -5,7 +5,7 @@ import { getServerDataAccess } from "@/lib/db/server";
 export default async function EntriesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ car?: string }>;
+  searchParams: Promise<{ car?: string; maintenance?: string; mode?: string }>;
 }) {
   const params = await searchParams;
   const dataAccess = await getServerDataAccess();
@@ -34,6 +34,14 @@ export default async function EntriesPage({
     dataAccess.entries.listByCarId(selectedCar.id),
   ]);
 
+  const shouldPrefillService = params.mode === "service";
+  const preselectedMaintenanceItemId =
+    shouldPrefillService &&
+    params.maintenance &&
+    maintenanceItems.some((item) => item.id === params.maintenance)
+      ? params.maintenance
+      : null;
+
   return (
     <AppShell>
       <EntryLogView
@@ -45,6 +53,9 @@ export default async function EntriesPage({
           (todo) => todo.status !== "completed" && todo.status !== "cancelled"
         )}
         recentEntries={entries.slice(0, 8)}
+        initialEntryType={shouldPrefillService ? "maintenance_done" : "fuel"}
+        initialShowAdvanced={shouldPrefillService}
+        preselectedMaintenanceItemId={preselectedMaintenanceItemId}
       />
     </AppShell>
   );

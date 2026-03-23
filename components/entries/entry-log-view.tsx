@@ -64,6 +64,8 @@ const entryTabs = [
   },
 ];
 
+const NONE_OPTION = "_none";
+
 interface EntryLogViewProps {
   cars: Car[];
   selectedCarId: string;
@@ -71,6 +73,9 @@ interface EntryLogViewProps {
   maintenanceItems: MaintenanceScheduleItem[];
   todoItems: TodoItem[];
   recentEntries: Entry[];
+  initialEntryType?: EntryType;
+  initialShowAdvanced?: boolean;
+  preselectedMaintenanceItemId?: string | null;
 }
 
 export function EntryLogView({
@@ -80,21 +85,37 @@ export function EntryLogView({
   maintenanceItems,
   todoItems,
   recentEntries,
+  initialEntryType = "fuel",
+  initialShowAdvanced = false,
+  preselectedMaintenanceItemId = null,
 }: EntryLogViewProps) {
   const router = useRouter();
   const [saving, setSaving] = React.useState(false);
-  const [showAdvanced, setShowAdvanced] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState<EntryType>("fuel");
+  const [showAdvanced, setShowAdvanced] = React.useState(initialShowAdvanced);
+  const [activeTab, setActiveTab] = React.useState<EntryType>(initialEntryType);
   const [isNavigating, startTransition] = React.useTransition();
   const [carSelectValue, setCarSelectValue] = React.useState(selectedCarId);
+  const [linkedMaintenanceItemId, setLinkedMaintenanceItemId] =
+    React.useState(preselectedMaintenanceItemId ?? NONE_OPTION);
+  const [linkedTodoId, setLinkedTodoId] = React.useState(NONE_OPTION);
+  const [formVersion, setFormVersion] = React.useState(0);
 
   React.useEffect(() => {
     setCarSelectValue(selectedCarId);
   }, [selectedCarId]);
 
   React.useEffect(() => {
-    setShowAdvanced(false);
-  }, [selectedCarId, activeTab]);
+    setActiveTab(initialEntryType);
+    setShowAdvanced(initialShowAdvanced);
+    setLinkedMaintenanceItemId(preselectedMaintenanceItemId ?? NONE_OPTION);
+    setLinkedTodoId(NONE_OPTION);
+    setFormVersion((version) => version + 1);
+  }, [
+    selectedCarId,
+    initialEntryType,
+    initialShowAdvanced,
+    preselectedMaintenanceItemId,
+  ]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -109,6 +130,8 @@ export function EntryLogView({
     const formData = new FormData(form);
     formData.set("car_id", selectedCarId);
     formData.set("entry_type", activeTab);
+    formData.set("maintenance_item_id", linkedMaintenanceItemId);
+    formData.set("todo_id", linkedTodoId);
 
     try {
       const payload = buildCreateEntryPayloadFromFormData(formData);
@@ -141,7 +164,13 @@ export function EntryLogView({
 
       form.reset();
       setShowAdvanced(false);
+      setLinkedMaintenanceItemId(NONE_OPTION);
+      setLinkedTodoId(NONE_OPTION);
+      setFormVersion((version) => version + 1);
       startTransition(() => {
+        router.replace(`/entries?car=${encodeURIComponent(selectedCarId)}`, {
+          scroll: false,
+        });
         router.refresh();
       });
     } catch (error) {
@@ -227,7 +256,13 @@ export function EntryLogView({
             <button
               key={tab.value}
               type="button"
-              onClick={() => setActiveTab(tab.value)}
+              onClick={() => {
+                setActiveTab(tab.value);
+                setShowAdvanced(false);
+                setLinkedMaintenanceItemId(NONE_OPTION);
+                setLinkedTodoId(NONE_OPTION);
+                setFormVersion((version) => version + 1);
+              }}
               className={cn(
                 "flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-xs font-medium transition-all active:scale-[0.98] md:text-sm",
                 isActive
@@ -242,7 +277,11 @@ export function EntryLogView({
         })}
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4 pb-16 md:pb-0">
+      <form
+        key={`${selectedCarId}:${activeTab}:${formVersion}`}
+        onSubmit={handleSubmit}
+        className="space-y-4 pb-16 md:pb-0"
+      >
         <input type="hidden" name="car_id" value={selectedCarId} />
         <input type="hidden" name="entry_type" value={activeTab} />
 
@@ -531,12 +570,16 @@ export function EntryLogView({
                       <Label htmlFor="maintenance_item_id" className="text-xs">
                         Maintenance Schedule Item
                       </Label>
-                      <Select name="maintenance_item_id" defaultValue="_none">
+                      <Select
+                        name="maintenance_item_id"
+                        value={linkedMaintenanceItemId}
+                        onValueChange={setLinkedMaintenanceItemId}
+                      >
                         <SelectTrigger id="maintenance_item_id" className="h-10">
                           <SelectValue placeholder="None" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="_none">None</SelectItem>
+                          <SelectItem value={NONE_OPTION}>None</SelectItem>
                           {maintenanceItems.map((item) => (
                             <SelectItem key={item.id} value={item.id}>
                               {item.name}
@@ -557,12 +600,16 @@ export function EntryLogView({
                       <Label htmlFor="todo_id" className="text-xs">
                         To-Do Item
                       </Label>
-                      <Select name="todo_id" defaultValue="_none">
+                      <Select
+                        name="todo_id"
+                        value={linkedTodoId}
+                        onValueChange={setLinkedTodoId}
+                      >
                         <SelectTrigger id="todo_id" className="h-10">
                           <SelectValue placeholder="None" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="_none">None</SelectItem>
+                          <SelectItem value={NONE_OPTION}>None</SelectItem>
                           {todoItems.map((todo) => (
                             <SelectItem key={todo.id} value={todo.id}>
                               {todo.title}
