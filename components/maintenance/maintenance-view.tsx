@@ -1,25 +1,25 @@
 "use client";
 
 import * as React from "react";
-import {
-  getCars,
-  getMaintenanceByCarId,
-  createMaintenanceItem,
-} from "@/lib/db/api";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import type { Car, MaintenanceScheduleItem } from "@/lib/db/schema";
 import {
-  formatMileage,
+  buildCreateMaintenancePayload,
+  buildUpdateMaintenancePayload,
+  getEditableMaintenancePayloadFromItem,
+  getMaintenanceFormValues,
+} from "@/lib/db/maintenance-form";
+import {
   formatCurrency,
+  formatDate,
+  formatMileage,
   getStatusLabel,
 } from "@/lib/format";
-import {
-  addMonthsToIsoDateClamped,
-  getTodayLocalDateString,
-} from "@/lib/time";
 import { cn } from "@/lib/utils";
+import { MaintenanceForm } from "@/components/maintenance/maintenance-form";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -32,96 +32,234 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { toast } from "sonner";
 import {
-  Plus,
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   AlertTriangle,
-  Clock,
   CheckCircle2,
-  Wrench,
-  Gauge,
+  Clock,
   DollarSign,
+  Gauge,
+  Pencil,
+  Plus,
+  Settings,
+  Trash2,
+  Wrench,
 } from "lucide-react";
 
-export function MaintenanceView() {
-  const [cars, setCars] = React.useState<Car[]>([]);
-  const [selectedCarId, setSelectedCarId] = React.useState("");
-  const [items, setItems] = React.useState<MaintenanceScheduleItem[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [dialogOpen, setDialogOpen] = React.useState(false);
+interface MaintenanceViewProps {
+  cars: Car[];
+  selectedCarId: string;
+  selectedCar: Car | null;
+  items: MaintenanceScheduleItem[];
+}
+
+function getResponseErrorMessage(
+  payload: unknown,
+  fallbackMessage: string
+): string {
+  if (
+    payload &&
+    typeof payload === "object" &&
+    "error" in payload &&
+    payload.error &&
+    typeof payload.error === "object" &&
+    "message" in payload.error &&
+    typeof payload.error.message === "string"
+  ) {
+    return payload.error.message;
+  }
+
+  return fallbackMessage;
+}
+
+export function MaintenanceView({
+  cars,
+  selectedCarId,
+  selectedCar,
+  items,
+}: MaintenanceViewProps) {
+  const router = useRouter();
+  const [carSelectValue, setCarSelectValue] = React.useState(selectedCarId);
+  const [createDialogOpen, setCreateDialogOpen] = React.useState(false);
+  const [editingItem, setEditingItem] =
+    React.useState<MaintenanceScheduleItem | null>(null);
+  const [deleteCandidate, setDeleteCandidate] =
+    React.useState<MaintenanceScheduleItem | null>(null);
+  const [savingCreate, setSavingCreate] = React.useState(false);
+  const [savingEdit, setSavingEdit] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
+  const [isNavigating, startTransition] = React.useTransition();
 
   React.useEffect(() => {
-    getCars().then((c) => {
-      setCars(c);
-      if (c.length > 0) setSelectedCarId(c[0].id);
-      setLoading(false);
-    });
-  }, []);
-
-  React.useEffect(() => {
-    if (selectedCarId) {
-      getMaintenanceByCarId(selectedCarId).then(setItems);
-    }
+    setCarSelectValue(selectedCarId);
   }, [selectedCarId]);
 
-  const selectedCar = cars.find((c) => c.id === selectedCarId);
+  function handleCarChange(nextCarId: string) {
+    setCarSelectValue(nextCarId);
+    startTransition(() => {
+      router.replace(`/maintenance?car=${encodeURIComponent(nextCarId)}`, {
+        scroll: false,
+      });
+    });
+  }
 
-  async function handleAddItem(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
+  async function handleCreateItem(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selectedCar) {
+      toast.error("Select a car before adding maintenance.");
+      return;
+    }
+
+    setSavingCreate(true);
+
     try {
-      const car = selectedCar;
-      const intervalMiles = Number(fd.get("interval_miles"));
-      const intervalMonths = fd.get("interval_months")
-        ? Number(fd.get("interval_months"))
-        : null;
-
-      const newItem = await createMaintenanceItem({
-        car_id: selectedCarId,
-        name: fd.get("name") as string,
-        description: (fd.get("description") as string) || null,
-        interval_miles: intervalMiles,
-        interval_months: intervalMonths,
-        last_done_mileage: null,
-        last_done_date: null,
-        next_due_mileage: car
-          ? car.current_mileage + intervalMiles
-          : intervalMiles,
-        next_due_date: intervalMonths
-          ? addMonthsToIsoDateClamped(
-              getTodayLocalDateString(),
-              intervalMonths
-            )
-          : null,
-        status: "upcoming",
-        estimated_cost: fd.get("estimated_cost")
-          ? Number(fd.get("estimated_cost"))
-          : null,
-        notes: (fd.get("notes") as string) || null,
+      const response = await fetch("/api/maintenance", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(
+          buildCreateMaintenancePayload(new FormData(event.currentTarget), selectedCar.id)
+        ),
       });
 
-      setItems((prev) => [...prev, newItem]);
-      toast.success("Maintenance item added!");
-      setDialogOpen(false);
-    } catch {
-      toast.error("Failed to add item.");
+      const payload = (await response.json().catch(() => null)) as unknown;
+      if (!response.ok) {
+        throw new Error(
+          getResponseErrorMessage(payload, "Failed to add maintenance item.")
+        );
+      }
+
+      setCreateDialogOpen(false);
+      toast.success("Maintenance item added.");
+      router.refresh();
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to add maintenance item."
+      );
+    } finally {
+      setSavingCreate(false);
     }
   }
 
-  if (loading) {
+  async function handleEditItem(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editingItem) {
+      return;
+    }
+
+    const body = buildUpdateMaintenancePayload(
+      new FormData(event.currentTarget),
+      getEditableMaintenancePayloadFromItem(editingItem)
+    );
+
+    if (Object.keys(body).length === 0) {
+      toast.error("Make a change before saving.");
+      return;
+    }
+
+    setSavingEdit(true);
+
+    try {
+      const response = await fetch(`/api/maintenance/${editingItem.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+
+      const payload = (await response.json().catch(() => null)) as unknown;
+      if (!response.ok) {
+        throw new Error(
+          getResponseErrorMessage(payload, "Failed to update maintenance item.")
+        );
+      }
+
+      setEditingItem(null);
+      toast.success("Maintenance item updated.");
+      router.refresh();
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to update maintenance item."
+      );
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
+  async function handleDeleteItem() {
+    if (!deleteCandidate) {
+      return;
+    }
+
+    setDeleting(true);
+
+    try {
+      const response = await fetch(`/api/maintenance/${deleteCandidate.id}`, {
+        method: "DELETE",
+      });
+
+      const payload = (await response.json().catch(() => null)) as unknown;
+      if (!response.ok) {
+        throw new Error(
+          getResponseErrorMessage(payload, "Failed to delete maintenance item.")
+        );
+      }
+
+      setDeleteCandidate(null);
+      toast.success("Maintenance item deleted.");
+      router.refresh();
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to delete maintenance item."
+      );
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  if (cars.length === 0 || !selectedCar) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      <div className="mx-auto flex min-h-[60vh] w-full max-w-lg flex-col items-center justify-center px-4 py-8 text-center">
+        <div className="rounded-full bg-primary/10 p-3 text-primary">
+          <Wrench className="h-6 w-6" />
+        </div>
+        <h1 className="mt-4 text-xl font-bold tracking-tight text-foreground">
+          Add a car before tracking maintenance
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Maintenance schedules are tied to a specific car. Create your first
+          car, then come back here to track service intervals.
+        </p>
+        <Button asChild className="mt-5">
+          <Link href="/cars/new">Add Car</Link>
+        </Button>
       </div>
     );
   }
 
-  const overdueItems = items.filter((i) => i.status === "overdue");
-  const dueSoonItems = items.filter((i) => i.status === "due_soon");
+  const overdueItems = items.filter((item) => item.status === "overdue");
+  const dueSoonItems = items.filter((item) => item.status === "due_soon");
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-4 pb-24 md:px-6 md:py-6 md:pb-8 lg:py-8">
@@ -134,7 +272,8 @@ export function MaintenanceView() {
             Track service intervals and stay on schedule.
           </p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+
+        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button size="sm" className="hidden h-10 tap-target md:inline-flex">
               <Plus className="mr-1.5 h-4 w-4" />
@@ -145,73 +284,26 @@ export function MaintenanceView() {
           <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Add Maintenance Item</DialogTitle>
+              <DialogDescription>
+                Create a recurring maintenance reminder for the selected car.
+              </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleAddItem} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="add_name">Name *</Label>
-                <Input
-                  id="add_name"
-                  name="name"
-                  placeholder="Oil Change, Tire Rotation, etc."
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="add_desc">Description</Label>
-                <Input
-                  id="add_desc"
-                  name="description"
-                  placeholder="Full synthetic 0W-20"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label htmlFor="add_miles">Interval (miles) *</Label>
-                  <Input
-                    id="add_miles"
-                    name="interval_miles"
-                    type="number"
-                    inputMode="numeric"
-                    min={1}
-                    placeholder="7500"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="add_months">Interval (months)</Label>
-                  <Input
-                    id="add_months"
-                    name="interval_months"
-                    type="number"
-                    inputMode="numeric"
-                    min={1}
-                    placeholder="6"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="add_cost">Estimated Cost ($)</Label>
-                <Input
-                  id="add_cost"
-                  name="estimated_cost"
-                  type="number"
-                  inputMode="decimal"
-                  step="0.01"
-                  min={0}
-                  placeholder="85.00"
-                />
-              </div>
-              <Button type="submit" className="w-full">
-                Add Item
-              </Button>
-            </form>
+            <MaintenanceForm
+              mode="create"
+              saving={savingCreate}
+              onSubmit={handleCreateItem}
+              onCancel={() => setCreateDialogOpen(false)}
+            />
           </DialogContent>
         </Dialog>
       </div>
 
-      {/* Car selector */}
-      <div className="mb-4 md:mb-6">
-        <Select value={selectedCarId} onValueChange={setSelectedCarId}>
+      <div className="mb-4 space-y-1.5 md:mb-6">
+        <Select
+          value={carSelectValue}
+          onValueChange={handleCarChange}
+          disabled={isNavigating}
+        >
           <SelectTrigger className="h-10 w-full max-w-md text-sm">
             <SelectValue placeholder="Select a car" />
           </SelectTrigger>
@@ -223,10 +315,12 @@ export function MaintenanceView() {
             ))}
           </SelectContent>
         </Select>
+        <p className="text-[11px] text-muted-foreground">
+          Current mileage: {selectedCar.current_mileage.toLocaleString()} mi
+        </p>
       </div>
 
-      {/* Reminder summary cards - compact on mobile */}
-      {selectedCar && (overdueItems.length > 0 || dueSoonItems.length > 0) && (
+      {(overdueItems.length > 0 || dueSoonItems.length > 0) && (
         <div className="mb-4 grid grid-cols-2 gap-3 md:mb-6 md:grid-cols-3">
           <div
             className={cn(
@@ -259,6 +353,7 @@ export function MaintenanceView() {
               {overdueItems.length}
             </span>
           </div>
+
           <div
             className={cn(
               "rounded-xl border p-3 md:p-4",
@@ -282,6 +377,7 @@ export function MaintenanceView() {
               {dueSoonItems.length}
             </span>
           </div>
+
           <div className="col-span-2 rounded-xl border border-border bg-card p-3 md:col-span-1 md:p-4">
             <div className="flex items-center gap-1.5 text-xs font-semibold text-card-foreground md:text-sm">
               <DollarSign className="h-3.5 w-3.5 text-primary" />
@@ -290,7 +386,7 @@ export function MaintenanceView() {
             <span className="mt-1 block text-lg font-bold text-card-foreground md:text-xl">
               {formatCurrency(
                 [...overdueItems, ...dueSoonItems].reduce(
-                  (s, i) => s + (i.estimated_cost ?? 0),
+                  (sum, item) => sum + (item.estimated_cost ?? 0),
                   0
                 )
               )}
@@ -299,7 +395,6 @@ export function MaintenanceView() {
         </div>
       )}
 
-      {/* Items list */}
       {items.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card py-16">
           <Wrench className="mb-3 h-8 w-8 text-muted-foreground" />
@@ -313,16 +408,78 @@ export function MaintenanceView() {
             <MaintenanceCard
               key={item.id}
               item={item}
-              carMileage={selectedCar?.current_mileage ?? 0}
+              carMileage={selectedCar.current_mileage}
+              onEdit={() => setEditingItem(item)}
+              onDelete={() => setDeleteCandidate(item)}
             />
           ))}
         </div>
       )}
 
+      <Dialog
+        open={editingItem !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingItem(null);
+          }
+        }}
+      >
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Maintenance Item</DialogTitle>
+            <DialogDescription>
+              Update the interval, last-service data, and cost details for this
+              maintenance item.
+            </DialogDescription>
+          </DialogHeader>
+          {editingItem ? (
+            <MaintenanceForm
+              key={editingItem.id}
+              mode="edit"
+              initialValues={getMaintenanceFormValues(editingItem)}
+              saving={savingEdit}
+              onSubmit={handleEditItem}
+              onCancel={() => setEditingItem(null)}
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog
+        open={deleteCandidate !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteCandidate(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this maintenance item?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes the schedule item. Once linked service
+              entries are fully real, completed service history will continue to
+              live in entries, but this schedule record itself will be gone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleDeleteItem}
+              disabled={deleting}
+            >
+              {deleting ? "Deleting..." : "Delete Item"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 px-4 py-3 backdrop-blur-md safe-bottom-pad md:hidden">
         <Button
           type="button"
-          onClick={() => setDialogOpen(true)}
+          onClick={() => setCreateDialogOpen(true)}
           className="h-11 w-full"
         >
           <Plus className="mr-1.5 h-4 w-4" />
@@ -336,9 +493,13 @@ export function MaintenanceView() {
 function MaintenanceCard({
   item,
   carMileage,
+  onEdit,
+  onDelete,
 }: {
   item: MaintenanceScheduleItem;
   carMileage: number;
+  onEdit: () => void;
+  onDelete: () => void;
 }) {
   const milesUntilDue =
     item.next_due_mileage != null ? item.next_due_mileage - carMileage : null;
@@ -406,13 +567,15 @@ function MaintenanceCard({
         </div>
         <Badge
           variant="outline"
-          className={cn("shrink-0 text-[10px] md:text-[11px]", badgeStyleMap[item.status])}
+          className={cn(
+            "shrink-0 text-[10px] md:text-[11px]",
+            badgeStyleMap[item.status]
+          )}
         >
           {getStatusLabel(item.status)}
         </Badge>
       </div>
 
-      {/* Progress bar */}
       <div className="mt-3">
         <Progress
           value={progressPercent}
@@ -420,7 +583,6 @@ function MaintenanceCard({
         />
       </div>
 
-      {/* Structured details for consistent mobile layout */}
       <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-muted-foreground md:mt-3.5 md:gap-3 md:text-xs">
         <DetailCell
           icon={Gauge}
@@ -432,7 +594,9 @@ function MaintenanceCard({
           label="Due"
           value={
             milesUntilDue == null
-              ? "Not set"
+              ? item.next_due_date
+                ? formatDate(item.next_due_date)
+                : "Not set"
               : milesUntilDue > 0
                 ? `${formatMileage(milesUntilDue)} left`
                 : `${formatMileage(Math.abs(milesUntilDue))} overdue`
@@ -442,9 +606,11 @@ function MaintenanceCard({
           icon={CheckCircle2}
           label="Last Done"
           value={
-            item.last_done_mileage != null
-              ? formatMileage(item.last_done_mileage)
-              : "Not recorded"
+            item.last_done_date
+              ? formatDate(item.last_done_date)
+              : item.last_done_mileage != null
+                ? formatMileage(item.last_done_mileage)
+                : "Not recorded"
           }
         />
         <DetailCell
@@ -456,6 +622,37 @@ function MaintenanceCard({
               : "Not set"
           }
         />
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button asChild variant="outline" size="sm" className="h-9 flex-1 sm:flex-none">
+          <Link
+            href={`/entries?car=${encodeURIComponent(item.car_id)}&maintenance=${encodeURIComponent(item.id)}&mode=service`}
+          >
+            <Settings className="h-3.5 w-3.5" />
+            Log Service
+          </Link>
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-9 flex-1 sm:flex-none"
+          onClick={onEdit}
+        >
+          <Pencil className="h-3.5 w-3.5" />
+          Edit
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-9 flex-1 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive sm:flex-none"
+          onClick={onDelete}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+          Delete
+        </Button>
       </div>
     </div>
   );
