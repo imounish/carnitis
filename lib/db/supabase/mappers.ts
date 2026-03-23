@@ -24,6 +24,18 @@ function toIsoTimestamp(value: TimestampValue): string {
   return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
 }
 
+function toIsoDateOnly(value: string | Date | null): string | null {
+  if (value == null) {
+    return null;
+  }
+
+  if (value instanceof Date) {
+    return value.toISOString().slice(0, 10);
+  }
+
+  return value;
+}
+
 export function mapCarRow(row: CarRow): Car {
   return {
     id: row.id,
@@ -53,7 +65,7 @@ export function mapEntryRow(row: EntryRow): Entry {
     id: row.id,
     car_id: row.car_id,
     entry_type: row.entry_type,
-    date: row.date,
+    date: toIsoDateOnly(row.date) ?? row.date,
     mileage: toRequiredNumber(row.mileage),
     fuel_gallons: toNumber(row.fuel_gallons),
     fuel_price_per_gallon: toNumber(row.fuel_price_per_gallon),
@@ -85,9 +97,9 @@ export function mapMaintenanceItemRow(
     interval_miles: toRequiredNumber(row.interval_miles),
     interval_months: row.interval_months,
     last_done_mileage: toNumber(row.last_done_mileage),
-    last_done_date: row.last_done_date,
+    last_done_date: toIsoDateOnly(row.last_done_date),
     next_due_mileage: toNumber(row.next_due_mileage),
-    next_due_date: row.next_due_date,
+    next_due_date: toIsoDateOnly(row.next_due_date),
     status: row.status,
     estimated_cost: toNumber(row.estimated_cost),
     notes: row.notes,
@@ -107,7 +119,7 @@ export function mapTodoRow(row: TodoRow): TodoItem {
     category: row.category,
     estimated_cost: toNumber(row.estimated_cost),
     linked_entry_id: row.linked_entry_id,
-    due_date: row.due_date,
+    due_date: toIsoDateOnly(row.due_date),
     completed_at:
       row.completed_at === null ? null : toIsoTimestamp(row.completed_at),
     created_at: toIsoTimestamp(row.created_at),

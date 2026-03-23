@@ -43,7 +43,7 @@ test("entry mapper preserves optional linkage fields", () => {
     owner_user_id: "user-1",
     car_id: "car-1",
     entry_type: "maintenance_expense",
-    date: "2026-03-16",
+    date: new Date("2026-03-16T05:00:00.000Z"),
     mileage: "12500",
     fuel_gallons: null,
     fuel_price_per_gallon: null,
@@ -64,6 +64,7 @@ test("entry mapper preserves optional linkage fields", () => {
   });
 
   assert.equal(entry.expense_amount, 95.25);
+  assert.equal(entry.date, "2026-03-16");
   assert.equal(entry.maintenance_item_id, "maint-1");
   assert.equal(entry.todo_id, "todo-1");
 });
@@ -78,9 +79,9 @@ test("maintenance and todo mappers normalize status rows", () => {
     interval_miles: "7500",
     interval_months: 6,
     last_done_mileage: "12000",
-    last_done_date: "2026-03-01",
+    last_done_date: new Date("2026-03-01T05:00:00.000Z"),
     next_due_mileage: "19500",
-    next_due_date: "2026-09-01",
+    next_due_date: new Date("2026-09-01T04:00:00.000Z"),
     status: "upcoming",
     estimated_cost: "89.99",
     notes: null,
@@ -99,7 +100,7 @@ test("maintenance and todo mappers normalize status rows", () => {
     category: "preventive_maintenance",
     estimated_cost: "25.00",
     linked_entry_id: "entry-1",
-    due_date: "2026-03-20",
+    due_date: new Date("2026-03-20T04:00:00.000Z"),
     completed_at: new Date("2026-03-18T09:30:00.000Z"),
     created_at: "2026-03-15T00:00:00.000Z",
     updated_at: "2026-03-18T09:30:00.000Z",
@@ -107,6 +108,9 @@ test("maintenance and todo mappers normalize status rows", () => {
 
   assert.equal(maintenance.interval_miles, 7500);
   assert.equal(maintenance.estimated_cost, 89.99);
+  assert.equal(maintenance.last_done_date, "2026-03-01");
+  assert.equal(maintenance.next_due_date, "2026-09-01");
   assert.equal(todo.estimated_cost, 25);
+  assert.equal(todo.due_date, "2026-03-20");
   assert.equal(todo.completed_at, "2026-03-18T09:30:00.000Z");
 });

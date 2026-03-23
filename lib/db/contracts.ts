@@ -25,12 +25,14 @@ export interface EntriesRepository {
 
 export interface MaintenanceRepository {
   listByCarId(carId: string): Promise<MaintenanceScheduleItem[]>;
+  getById(id: string): Promise<MaintenanceScheduleItem | null>;
   listUpcoming(): Promise<Array<MaintenanceScheduleItem & { car?: Car }>>;
   create(input: CreateMaintenanceItemInput): Promise<MaintenanceScheduleItem>;
   update(
     id: string,
     updates: Partial<UpdateMaintenanceItemInput>
   ): Promise<MaintenanceScheduleItem | null>;
+  delete(id: string): Promise<boolean>;
 }
 
 export interface TodosRepository {

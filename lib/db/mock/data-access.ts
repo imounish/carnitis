@@ -1,5 +1,5 @@
 import type { DataAccess } from "@/lib/db/contracts";
-import type { MaintenanceItemStatus, TodoStatus } from "@/lib/db/schema";
+import type { TodoStatus } from "@/lib/db/schema";
 import {
   mockCars,
   mockEntries,
@@ -7,6 +7,10 @@ import {
   mockTodos,
 } from "@/lib/db/mock-data";
 import { logDataAccessError } from "@/lib/db/logger";
+import {
+  applyDerivedMaintenanceState,
+  compareMaintenanceItems,
+} from "@/lib/db/maintenance-scheduling";
 import {
   parseCreateCarInput,
   parseCreateEntryInput,
@@ -22,13 +26,6 @@ import {
 } from "@/lib/time";
 
 const delay = (ms = 50) => new Promise((resolve) => setTimeout(resolve, ms));
-
-const maintenanceOrder: Record<MaintenanceItemStatus, number> = {
-  overdue: 0,
-  due_soon: 1,
-  upcoming: 2,
-  completed: 3,
-};
 
 const todoStatusOrder: Record<TodoStatus, number> = {
   in_progress: 0,
@@ -225,18 +222,38 @@ export function createMockDataAccess(): DataAccess {
     maintenance: {
       async listByCarId(carId) {
         await delay();
+        const car = mockCars.find((candidate) => candidate.id === carId);
+        const currentMileage = car?.current_mileage ?? 0;
+
         return mockMaintenanceItems
           .filter((item) => item.car_id === carId)
-          .sort((left, right) => maintenanceOrder[left.status] - maintenanceOrder[right.status]);
+          .map((item) => applyDerivedMaintenanceState(item, currentMileage))
+          .sort(compareMaintenanceItems);
+      },
+      async getById(id) {
+        await delay();
+        const item = mockMaintenanceItems.find((candidate) => candidate.id === id);
+        if (!item) {
+          return null;
+        }
+
+        const car = mockCars.find((candidate) => candidate.id === item.car_id);
+        return applyDerivedMaintenanceState(item, car?.current_mileage ?? 0);
       },
       async listUpcoming() {
         await delay();
         return mockMaintenanceItems
+          .map((item) => {
+            const car = mockCars.find((candidate) => candidate.id === item.car_id);
+            return {
+              ...applyDerivedMaintenanceState(item, car?.current_mileage ?? 0),
+              car,
+            };
+          })
           .filter((item) => item.status !== "completed")
-          .sort((left, right) => maintenanceOrder[left.status] - maintenanceOrder[right.status])
+          .sort(compareMaintenanceItems)
           .map((item) => ({
             ...item,
-            car: mockCars.find((car) => car.id === item.car_id),
           }));
       },
       async create(input) {
@@ -287,6 +304,16 @@ export function createMockDataAccess(): DataAccess {
             error
           );
         }
+      },
+      async delete(id) {
+        await delay();
+        const index = mockMaintenanceItems.findIndex((item) => item.id === id);
+        if (index === -1) {
+          return false;
+        }
+
+        mockMaintenanceItems.splice(index, 1);
+        return true;
       },
     },
     todos: {

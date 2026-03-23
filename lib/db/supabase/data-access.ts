@@ -4,12 +4,16 @@ import type { Kysely } from "kysely";
 import { getPostgresPool } from "@/lib/postgres";
 import type { DataAccess, RepositoryContext } from "@/lib/db/contracts";
 import { logDataAccessError } from "@/lib/db/logger";
-import type { Car, MaintenanceItemStatus, TodoStatus } from "@/lib/db/schema";
+import type { Car, TodoStatus } from "@/lib/db/schema";
 import { mapCarRow, mapEntryRow, mapMaintenanceItemRow, mapTodoRow } from "@/lib/db/supabase/mappers";
 import { withUserDatabase } from "@/lib/db/supabase/scoped-db";
 import type { AppDatabase } from "@/lib/db/supabase/schema";
 import { listEntriesByCarIdQuery } from "@/lib/db/supabase/entry-queries";
 import { createEntryWorkflow } from "@/lib/db/supabase/entry-workflow";
+import {
+  applyDerivedMaintenanceState,
+  compareMaintenanceItems,
+} from "@/lib/db/maintenance-scheduling";
 import {
   parseCreateCarInput,
   parseCreateEntryInput,
@@ -19,13 +23,6 @@ import {
   parseUpdateMaintenanceItemInput,
   parseUpdateTodoInput,
 } from "@/lib/db/validation";
-
-const maintenanceOrder: Record<MaintenanceItemStatus, number> = {
-  overdue: 0,
-  due_soon: 1,
-  upcoming: 2,
-  completed: 3,
-};
 
 const todoStatusOrder: Record<TodoStatus, number> = {
   in_progress: 0,
@@ -324,18 +321,31 @@ export function createSupabaseDataAccess(context: RepositoryContext): DataAccess
     maintenance: {
       async listByCarId(carId) {
         try {
-          const rows = await withUserDatabase(context.userId, async (db) =>
-            db
-              .selectFrom("maintenance_schedule_items")
-              .selectAll()
-              .where("owner_user_id", "=", context.userId)
-              .where("car_id", "=", carId)
-              .execute()
+          const [carRow, rows] = await withUserDatabase(
+            context.userId,
+            async (db) =>
+              Promise.all([
+                selectCarById(db, context.userId, carId),
+                db
+                  .selectFrom("maintenance_schedule_items")
+                  .selectAll()
+                  .where("owner_user_id", "=", context.userId)
+                  .where("car_id", "=", carId)
+                  .execute(),
+              ])
           );
+
+          const currentMileage =
+            carRow == null
+              ? 0
+              : typeof carRow.current_mileage === "number"
+                ? carRow.current_mileage
+                : Number(carRow.current_mileage);
 
           return rows
             .map(mapMaintenanceItemRow)
-            .sort((left, right) => maintenanceOrder[left.status] - maintenanceOrder[right.status]);
+            .map((item) => applyDerivedMaintenanceState(item, currentMileage))
+            .sort(compareMaintenanceItems);
         } catch (error) {
           throw logDataAccessError(
             {
@@ -343,6 +353,47 @@ export function createSupabaseDataAccess(context: RepositoryContext): DataAccess
               entity: "maintenance_item",
               userId: context.userId,
               metadata: { carId },
+            },
+            error
+          );
+        }
+      },
+      async getById(id) {
+        try {
+          const row = await withUserDatabase(context.userId, async (db) =>
+            db
+              .selectFrom("maintenance_schedule_items")
+              .selectAll()
+              .where("owner_user_id", "=", context.userId)
+              .where("id", "=", id)
+              .executeTakeFirst()
+          );
+
+          if (!row) {
+            return null;
+          }
+
+          const carRow = await withUserDatabase(context.userId, async (db) =>
+            selectCarById(db, context.userId, row.car_id)
+          );
+          const currentMileage =
+            carRow == null
+              ? 0
+              : typeof carRow.current_mileage === "number"
+                ? carRow.current_mileage
+                : Number(carRow.current_mileage);
+
+          return applyDerivedMaintenanceState(
+            mapMaintenanceItemRow(row),
+            currentMileage
+          );
+        } catch (error) {
+          throw logDataAccessError(
+            {
+              operation: "getById",
+              entity: "maintenance_item",
+              userId: context.userId,
+              metadata: { id },
             },
             error
           );
@@ -381,11 +432,18 @@ export function createSupabaseDataAccess(context: RepositoryContext): DataAccess
           );
 
           return rows
-            .map((row) => ({
-              ...mapMaintenanceItemRow(row),
-              car: getCarJoin(row),
-            }))
-            .sort((left, right) => maintenanceOrder[left.status] - maintenanceOrder[right.status]);
+            .map((row) => {
+              const car = getCarJoin(row);
+              return {
+                ...applyDerivedMaintenanceState(
+                  mapMaintenanceItemRow(row),
+                  car.current_mileage
+                ),
+                car,
+              };
+            })
+            .filter((item) => item.status !== "completed")
+            .sort(compareMaintenanceItems);
         } catch (error) {
           throw logDataAccessError(
             { operation: "listUpcoming", entity: "maintenance_item", userId: context.userId },
@@ -454,6 +512,29 @@ export function createSupabaseDataAccess(context: RepositoryContext): DataAccess
           throw logDataAccessError(
             {
               operation: "update",
+              entity: "maintenance_item",
+              userId: context.userId,
+              metadata: { id },
+            },
+            error
+          );
+        }
+      },
+      async delete(id) {
+        try {
+          const result = await withUserDatabase(context.userId, async (db) =>
+            db
+              .deleteFrom("maintenance_schedule_items")
+              .where("id", "=", id)
+              .where("owner_user_id", "=", context.userId)
+              .executeTakeFirst()
+          );
+
+          return Number(result.numDeletedRows ?? 0) > 0;
+        } catch (error) {
+          throw logDataAccessError(
+            {
+              operation: "delete",
               entity: "maintenance_item",
               userId: context.userId,
               metadata: { id },
