@@ -81,7 +81,9 @@ const todoItem: TodoItem = {
   updated_at: "2026-03-10T10:00:00.000Z",
 };
 
-function renderView() {
+function renderView(
+  overrides?: Partial<React.ComponentProps<typeof EntryLogView>>
+) {
   return render(
     <EntryLogView
       cars={[car]}
@@ -90,6 +92,7 @@ function renderView() {
       maintenanceItems={[maintenanceItem]}
       todoItems={[todoItem]}
       recentEntries={[]}
+      {...overrides}
     />
   );
 }
@@ -306,6 +309,63 @@ describe("EntryLogView success path", () => {
       maintenance_item_id: maintenanceItem.id,
       mileage: 12480,
       description: "Linked service",
+    });
+    expect(routerSpies.replace).toHaveBeenCalledWith("/entries?car=car-1", {
+      scroll: false,
+    });
+  });
+
+  it("prefills a todo item and keeps it linked in the submitted payload", async () => {
+    let capturedPayload: Record<string, unknown> | null = null;
+
+    server.use(
+      http.post("/api/entries", async ({ request }) => {
+        capturedPayload = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ data: { id: "entry-4" } });
+      })
+    );
+
+    const user = userEvent.setup();
+
+    renderView({
+      initialEntryType: "maintenance_expense",
+      initialShowAdvanced: true,
+      preselectedTodoItemId: todoItem.id,
+    });
+
+    expect(screen.getByDisplayValue("Check cabin air filter")).toBeTruthy();
+
+    await user.type(screen.getByLabelText(/Odometer/i), "12410");
+    await user.type(screen.getByLabelText(/Amount/i), "42.50");
+    await user.type(
+      screen.getByLabelText(/^Description/i),
+      "Cabin filter replacement"
+    );
+    await user.click(screen.getByRole("button", { name: /Save Entry/i }));
+
+    await waitFor(() => {
+      expect(routerSpies.refresh).toHaveBeenCalledTimes(1);
+    });
+
+    expect(capturedPayload).toEqual({
+      car_id: "car-1",
+      entry_type: "maintenance_expense",
+      date: "2026-03-18",
+      mileage: 12410,
+      fuel_gallons: null,
+      fuel_price_per_gallon: null,
+      fuel_total_cost: null,
+      fuel_station: null,
+      fuel_octane: null,
+      was_full_tank: null,
+      expense_category: "regular_maintenance",
+      expense_amount: 42.5,
+      description: "Cabin filter replacement",
+      vendor: null,
+      parts_replaced: null,
+      maintenance_item_id: null,
+      todo_id: "todo-1",
+      notes: null,
     });
     expect(routerSpies.replace).toHaveBeenCalledWith("/entries?car=car-1", {
       scroll: false,

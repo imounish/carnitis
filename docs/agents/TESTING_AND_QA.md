@@ -68,3 +68,4 @@ For each PR, explicitly state:
 - For temporal logic, add direct regression coverage for date-only parsing, explicit-timezone timestamp formatting, and end-of-month month-add behavior. Do not rely on the machine timezone or implicit JavaScript date parsing in tests.
 - When migrating a route-owned CRUD flow, include at least one interactive QA pass that exercises route-to-route deep links, success refresh behavior, and destructive-dialog keyboard focus.
 - When DB-backed QA reveals a row-mapper shape mismatch, add a mapper-level regression test for the raw driver shape instead of only asserting the downstream UI symptom.
+- Radix Select can throw pointer-capture errors in jsdom. Stub `hasPointerCapture`, `setPointerCapture`, and `releasePointerCapture` once in the shared test setup instead of scattering workarounds across individual component tests.

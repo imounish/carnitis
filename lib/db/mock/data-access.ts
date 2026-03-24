@@ -1,5 +1,4 @@
 import type { DataAccess } from "@/lib/db/contracts";
-import type { TodoStatus } from "@/lib/db/schema";
 import {
   mockCars,
   mockEntries,
@@ -11,6 +10,12 @@ import {
   applyDerivedMaintenanceState,
   compareMaintenanceItems,
 } from "@/lib/db/maintenance-scheduling";
+import {
+  compareTodos,
+  isTodoActive,
+  normalizeDirectTodoUpdates,
+  todoPriorityOrder,
+} from "@/lib/db/todo-helpers";
 import {
   parseCreateCarInput,
   parseCreateEntryInput,
@@ -26,20 +31,6 @@ import {
 } from "@/lib/time";
 
 const delay = (ms = 50) => new Promise((resolve) => setTimeout(resolve, ms));
-
-const todoStatusOrder: Record<TodoStatus, number> = {
-  in_progress: 0,
-  pending: 1,
-  completed: 2,
-  cancelled: 3,
-};
-
-const todoPriorityOrder = {
-  urgent: 0,
-  high: 1,
-  medium: 2,
-  low: 3,
-};
 
 function compareEntriesDesc<
   TEntry extends { date: string; created_at: string }
@@ -319,20 +310,12 @@ export function createMockDataAccess(): DataAccess {
     todos: {
       async listByCarId(carId) {
         await delay();
-        return mockTodos
-          .filter((todo) => todo.car_id === carId)
-          .sort((left, right) => {
-            if (todoStatusOrder[left.status] !== todoStatusOrder[right.status]) {
-              return todoStatusOrder[left.status] - todoStatusOrder[right.status];
-            }
-
-            return todoPriorityOrder[left.priority] - todoPriorityOrder[right.priority];
-          });
+        return mockTodos.filter((todo) => todo.car_id === carId).sort(compareTodos);
       },
       async listAll() {
         await delay();
         return mockTodos
-          .filter((todo) => todo.status !== "completed" && todo.status !== "cancelled")
+          .filter(isTodoActive)
           .sort(
             (left, right) =>
               todoPriorityOrder[left.priority] - todoPriorityOrder[right.priority]
@@ -364,7 +347,9 @@ export function createMockDataAccess(): DataAccess {
       },
       async update(id, updates) {
         try {
-          const parsedUpdates = parseUpdateTodoInput(updates);
+          const parsedUpdates = normalizeDirectTodoUpdates(
+            parseUpdateTodoInput(updates)
+          );
           await delay();
 
           const index = mockTodos.findIndex((todo) => todo.id === id);
@@ -385,6 +370,16 @@ export function createMockDataAccess(): DataAccess {
             error
           );
         }
+      },
+      async delete(id) {
+        await delay();
+        const index = mockTodos.findIndex((todo) => todo.id === id);
+        if (index === -1) {
+          return false;
+        }
+
+        mockTodos.splice(index, 1);
+        return true;
       },
     },
   };

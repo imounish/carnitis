@@ -40,6 +40,7 @@ export interface TodosRepository {
   listAll(): Promise<Array<TodoItem & { car?: Car }>>;
   create(input: CreateTodoInput): Promise<TodoItem>;
   update(id: string, updates: UpdateTodoInput): Promise<TodoItem | null>;
+  delete(id: string): Promise<boolean>;
 }
 
 export interface DataAccess {
