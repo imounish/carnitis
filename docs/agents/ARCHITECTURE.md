@@ -56,6 +56,7 @@ Better Auth integration note:
 - If a route is write-first and the UX depends on route-local reads, prefer a single route-owned cutover over an artificial “reads first, writes later” split.
 - Treat maintenance `status` as derived server-owned output from canonical due fields plus current mileage/date. Persist it for convenience, but do not trust the stored value on reads when the canonical inputs are already available.
 - When two routes can express the same business event, converge on one transactional path rather than duplicating logic. Maintenance completion now routes through `/entries` instead of adding a second maintenance-only completion workflow.
+- Keep shared selectors scoped to the surface they already serve. For todos, `listAll()` stays dashboard-active-only; route-wide “all cars” views that need completed rows should aggregate per-car reads instead of widening the shared selector and regressing another screen.
 
 ## 6. Error Handling Strategy
 - Return typed errors from services.

@@ -76,6 +76,7 @@ interface EntryLogViewProps {
   initialEntryType?: EntryType;
   initialShowAdvanced?: boolean;
   preselectedMaintenanceItemId?: string | null;
+  preselectedTodoItemId?: string | null;
 }
 
 export function EntryLogView({
@@ -88,6 +89,7 @@ export function EntryLogView({
   initialEntryType = "fuel",
   initialShowAdvanced = false,
   preselectedMaintenanceItemId = null,
+  preselectedTodoItemId = null,
 }: EntryLogViewProps) {
   const router = useRouter();
   const [saving, setSaving] = React.useState(false);
@@ -97,7 +99,9 @@ export function EntryLogView({
   const [carSelectValue, setCarSelectValue] = React.useState(selectedCarId);
   const [linkedMaintenanceItemId, setLinkedMaintenanceItemId] =
     React.useState(preselectedMaintenanceItemId ?? NONE_OPTION);
-  const [linkedTodoId, setLinkedTodoId] = React.useState(NONE_OPTION);
+  const [linkedTodoId, setLinkedTodoId] = React.useState(
+    preselectedTodoItemId ?? NONE_OPTION
+  );
   const [formVersion, setFormVersion] = React.useState(0);
 
   React.useEffect(() => {
@@ -108,13 +112,14 @@ export function EntryLogView({
     setActiveTab(initialEntryType);
     setShowAdvanced(initialShowAdvanced);
     setLinkedMaintenanceItemId(preselectedMaintenanceItemId ?? NONE_OPTION);
-    setLinkedTodoId(NONE_OPTION);
+    setLinkedTodoId(preselectedTodoItemId ?? NONE_OPTION);
     setFormVersion((version) => version + 1);
   }, [
     selectedCarId,
     initialEntryType,
     initialShowAdvanced,
     preselectedMaintenanceItemId,
+    preselectedTodoItemId,
   ]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
