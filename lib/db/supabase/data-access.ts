@@ -4,7 +4,7 @@ import type { Kysely } from "kysely";
 import { getPostgresPool } from "@/lib/postgres";
 import type { DataAccess, RepositoryContext } from "@/lib/db/contracts";
 import { logDataAccessError } from "@/lib/db/logger";
-import type { Car, TodoStatus } from "@/lib/db/schema";
+import type { Car } from "@/lib/db/schema";
 import { mapCarRow, mapEntryRow, mapMaintenanceItemRow, mapTodoRow } from "@/lib/db/supabase/mappers";
 import { withUserDatabase } from "@/lib/db/supabase/scoped-db";
 import type { AppDatabase } from "@/lib/db/supabase/schema";
@@ -15,6 +15,12 @@ import {
   compareMaintenanceItems,
 } from "@/lib/db/maintenance-scheduling";
 import {
+  compareTodos,
+  isTodoActive,
+  normalizeDirectTodoUpdates,
+  todoPriorityOrder,
+} from "@/lib/db/todo-helpers";
+import {
   parseCreateCarInput,
   parseCreateEntryInput,
   parseCreateMaintenanceItemInput,
@@ -23,20 +29,6 @@ import {
   parseUpdateMaintenanceItemInput,
   parseUpdateTodoInput,
 } from "@/lib/db/validation";
-
-const todoStatusOrder: Record<TodoStatus, number> = {
-  in_progress: 0,
-  pending: 1,
-  completed: 2,
-  cancelled: 3,
-};
-
-const todoPriorityOrder = {
-  urgent: 0,
-  high: 1,
-  medium: 2,
-  low: 3,
-};
 
 function getCarJoin(row: {
   car_id: string;
@@ -556,15 +548,7 @@ export function createSupabaseDataAccess(context: RepositoryContext): DataAccess
               .execute()
           );
 
-          return rows
-            .map(mapTodoRow)
-            .sort((left, right) => {
-              if (todoStatusOrder[left.status] !== todoStatusOrder[right.status]) {
-                return todoStatusOrder[left.status] - todoStatusOrder[right.status];
-              }
-
-              return todoPriorityOrder[left.priority] - todoPriorityOrder[right.priority];
-            });
+          return rows.map(mapTodoRow).sort(compareTodos);
         } catch (error) {
           throw logDataAccessError(
             {
@@ -605,8 +589,6 @@ export function createSupabaseDataAccess(context: RepositoryContext): DataAccess
                 "cars.updated_at as car_updated_at",
               ])
               .where("todo_items.owner_user_id", "=", context.userId)
-              .where("todo_items.status", "!=", "completed")
-              .where("todo_items.status", "!=", "cancelled")
               .execute()
           );
 
@@ -615,6 +597,7 @@ export function createSupabaseDataAccess(context: RepositoryContext): DataAccess
               ...mapTodoRow(row),
               car: getCarJoin(row),
             }))
+            .filter(isTodoActive)
             .sort(
               (left, right) =>
                 todoPriorityOrder[left.priority] - todoPriorityOrder[right.priority]
@@ -662,7 +645,9 @@ export function createSupabaseDataAccess(context: RepositoryContext): DataAccess
       },
       async update(id, updates) {
         try {
-          const parsedUpdates = parseUpdateTodoInput(updates);
+          const parsedUpdates = normalizeDirectTodoUpdates(
+            parseUpdateTodoInput(updates)
+          );
           const row = await withUserDatabase(context.userId, async (db) =>
             db
               .updateTable("todo_items")
@@ -681,6 +666,29 @@ export function createSupabaseDataAccess(context: RepositoryContext): DataAccess
           throw logDataAccessError(
             {
               operation: "update",
+              entity: "todo",
+              userId: context.userId,
+              metadata: { id },
+            },
+            error
+          );
+        }
+      },
+      async delete(id) {
+        try {
+          const result = await withUserDatabase(context.userId, async (db) =>
+            db
+              .deleteFrom("todo_items")
+              .where("id", "=", id)
+              .where("owner_user_id", "=", context.userId)
+              .executeTakeFirst()
+          );
+
+          return Number(result.numDeletedRows ?? 0) > 0;
+        } catch (error) {
+          throw logDataAccessError(
+            {
+              operation: "delete",
               entity: "todo",
               userId: context.userId,
               metadata: { id },
