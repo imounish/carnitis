@@ -30,8 +30,8 @@ This is the single source of truth for planned implementation work in `carnitis`
 | T008 | Maintenance Route Reads + Create Cutover To Supabase | P1 | done | T005B, T006 | `IP-008-maintenance-domain-supabase-migration.md` |
 | T008A | Maintenance Edit/Delete + Scheduling Recalculation | P1 | done | T008, T010 | `IP-008-maintenance-domain-supabase-migration.md` |
 | T008B | Maintenance Route Convergence With Entry-linked Service Logging | P1 | done | T008A, T007 | `IP-008-maintenance-domain-supabase-migration.md` |
-| T009 | Todo Domain Reads + CRUD in Supabase | P1 | todo | T005B, T006 | `IP-009-todos-domain-supabase-migration.md` |
-| T009A | Todo Route Convergence After Entry-linked Completion | P1 | todo | T009, T007 | `IP-009-todos-domain-supabase-migration.md` |
+| T009 | Todo Domain Reads + CRUD in Supabase | P1 | done | T005B, T006 | `IP-009-todos-domain-supabase-migration.md` |
+| T009A | Todo Route Convergence After Entry-linked Completion | P1 | done | T009, T007 | `IP-009-todos-domain-supabase-migration.md` |
 | T010 | Unified Form + Server Boundary Validation (zod) | P1 | done | T002, T005 | `IP-005-supabase-data-adapter-foundation.md` |
 | T011 | Error Handling + Observability Baseline (UX-safe failures) | P1 | done | T002, T005 | `IP-005-supabase-data-adapter-foundation.md` |
 | T012 | Accessibility Hardening Pass (WCAG AA focus) | P0 | todo | T001 | TBD |
