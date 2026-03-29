@@ -1,14 +1,4 @@
-"use client";
-
-import * as React from "react";
 import Link from "next/link";
-import {
-  getDashboardStats,
-  getCars,
-  getRecentEntries,
-  getAllUpcomingMaintenance,
-  getAllTodos,
-} from "@/lib/db/api";
 import type {
   Car,
   Entry,
@@ -34,7 +24,7 @@ import {
   Fuel,
 } from "lucide-react";
 
-interface DashboardData {
+interface DashboardViewProps {
   stats: {
     totalCars: number;
     totalSpent: number;
@@ -47,35 +37,13 @@ interface DashboardData {
   todos: (TodoItem & { car?: Car })[];
 }
 
-export function DashboardView() {
-  const [data, setData] = React.useState<DashboardData | null>(null);
-
-  React.useEffect(() => {
-    async function load() {
-      const [stats, cars, recentEntries, maintenanceAlerts, todos] =
-        await Promise.all([
-          getDashboardStats(),
-          getCars(),
-          getRecentEntries(8),
-          getAllUpcomingMaintenance(),
-          getAllTodos(),
-        ]);
-      setData({ stats, cars, recentEntries, maintenanceAlerts, todos });
-    }
-    load();
-  }, []);
-
-  if (!data) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
-    );
-  }
-
-  const { stats, cars, recentEntries, maintenanceAlerts, todos } = data;
-
-  // Compute aggregate expense data for donut
+export function DashboardView({
+  stats,
+  cars,
+  recentEntries,
+  maintenanceAlerts,
+  todos,
+}: DashboardViewProps) {
   const totalFuel = cars.reduce((s, c) => s + c.total_fuel_spent, 0);
   const totalMaint = cars.reduce((s, c) => s + c.total_maintenance_spent, 0);
   const totalImprove = cars.reduce(
