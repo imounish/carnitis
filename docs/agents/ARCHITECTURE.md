@@ -4,7 +4,7 @@
 - `app/`: Next.js App Router routes and layouts.
 - `components/`: reusable UI and domain views.
 - `lib/auth`: auth service contracts and implementations.
-- `lib/db`: domain data contracts and Supabase adapter (all 4 domains migrated; mock facade remains only for dashboard until T020).
+- `lib/db`: domain data contracts and Supabase adapter (all 4 domains + dashboard fully migrated; mock facade deleted in T020).
 - `supabase/`: local Supabase config, migrations, seed scripts.
 
 ## 2. Routing Boundaries
@@ -27,7 +27,7 @@ Rules:
 - Centralize mapping/parsing from DB rows to domain types in `lib/db/supabase/mappers.ts`.
 - All server-only Supabase access goes through `lib/db/server.ts` → `getServerDataAccess()` and the implementation in `lib/db/supabase/`.
 - Route pages fetch data server-side and pass to client components as props. Do not fetch data in `useEffect` on the client.
-- `lib/db/api.ts` is a transitional mock facade used only by the dashboard (T020 will migrate and delete it).
+- `lib/db/api.ts` and `lib/db/mock/` have been deleted (T020). No mock data layer remains in the codebase.
 - After T020, the mock layer (`lib/db/api.ts`, `lib/db/mock/`) will be deleted entirely.
 
 ## 4. Auth Boundaries
