@@ -4,7 +4,7 @@
 - `app/`: Next.js App Router routes and layouts.
 - `components/`: reusable UI and domain views.
 - `lib/auth`: auth service contracts and implementations.
-- `lib/db`: domain data contracts and mock adapter.
+- `lib/db`: domain data contracts and Supabase adapter (all 4 domains migrated; mock facade remains only for dashboard until T020).
 - `supabase/`: local Supabase config, migrations, seed scripts.
 
 ## 2. Routing Boundaries
@@ -23,13 +23,12 @@ Use a layered model:
 3. Data adapter layer: Supabase queries (or mock adapter where still transitional).
 
 Rules:
-- Preserve service interfaces while migrating from mock to Supabase.
 - Avoid leaking Supabase response shapes directly into UI.
-- Centralize mapping/parsing from DB rows to domain types.
-- Keep [`lib/db/api.ts`](/Users/mounish/workspace/projects/car-expense/carnitis/lib/db/api.ts) as the client-safe transitional facade while the UI still depends on mock data.
-- Put server-only Supabase access behind [`lib/db/server.ts`](/Users/mounish/workspace/projects/car-expense/carnitis/lib/db/server.ts) and [`lib/db/supabase/`](/Users/mounish/workspace/projects/car-expense/carnitis/lib/db/supabase/).
-- During partial domain migrations, move the real read/write path into feature-owned server pages and route handlers first, while leaving the shared transitional facade in place for dependent domains until their own migration tasks land.
-- If a route owns both its primary reads and its primary mutations, complete the feature route cutover there before converging shared surfaces. Maintenance followed the same pattern as entries: the route became real first while dashboard alerts stayed transitional.
+- Centralize mapping/parsing from DB rows to domain types in `lib/db/supabase/mappers.ts`.
+- All server-only Supabase access goes through `lib/db/server.ts` → `getServerDataAccess()` and the implementation in `lib/db/supabase/`.
+- Route pages fetch data server-side and pass to client components as props. Do not fetch data in `useEffect` on the client.
+- `lib/db/api.ts` is a transitional mock facade used only by the dashboard (T020 will migrate and delete it).
+- After T020, the mock layer (`lib/db/api.ts`, `lib/db/mock/`) will be deleted entirely.
 
 ## 4. Auth Boundaries
 - Use `AuthService` interface as the contract.
@@ -76,3 +75,16 @@ Better Auth integration note:
 - Use Client Components only when interactivity/browser APIs are required.
 - Keep expensive charts/lists virtualized or progressively rendered when needed.
 - Avoid unnecessary re-fetching; use cache/revalidation deliberately.
+
+## 8. Code Quality Mandate
+- Code must be simplistic, minimal, and easy to understand.
+- No logic should exist in more than one place. Deduplicate aggressively.
+- Abstractions must earn their existence — delete any that don't reduce total complexity.
+- Names must be meaningful and self-documenting.
+- If you can delete it and nothing breaks, it shouldn't exist.
+- Shared infrastructure (API route patterns, validation primitives, error payloads, mappers) should be consolidated, not copy-pasted per domain.
+
+## 9. Migration Status
+All 4 core domains (cars, entries, maintenance, todos) are fully migrated to Supabase. The remaining migration is:
+- **Dashboard** (T020): still uses mock data via `lib/db/api.ts`; will be migrated to server-side data fetching
+- After T020, the mock facade and all mock data files can be deleted
