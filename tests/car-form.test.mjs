@@ -17,6 +17,8 @@ test("builds the create car payload from form data using current field rules", (
   formData.set("color", " Black ");
   formData.set("license_plate", "  ");
   formData.set("current_mileage", "12345");
+  formData.set("mileage_as_of_date", "2026-04-05");
+  formData.set("mileage_check_interval_days", "21");
   formData.set("fuel_tank_capacity", "15.8");
   formData.set("fuel_type", "");
   formData.set("notes", "  Garage kept  ");
@@ -31,6 +33,8 @@ test("builds the create car payload from form data using current field rules", (
   assert.equal(payload.color, "Black");
   assert.equal(payload.license_plate, null);
   assert.equal(payload.current_mileage, 12345);
+  assert.equal(payload.mileage_as_of_date, "2026-04-05");
+  assert.equal(payload.mileage_check_interval_days, 21);
   assert.equal(payload.fuel_tank_capacity, 15.8);
   assert.equal(payload.fuel_type, "gasoline");
   assert.equal(payload.notes, "Garage kept");
@@ -49,6 +53,8 @@ test("keeps optional numeric fields nullable when omitted", () => {
   assert.equal(payload.fuel_tank_capacity, null);
   assert.equal(payload.notes, null);
   assert.equal(payload.image_url, null);
+  // mileage_check_interval_days defaults to 14 when omitted
+  assert.equal(payload.mileage_check_interval_days, 14);
 });
 
 test("maps an existing car into edit form values with string-friendly defaults", () => {
@@ -61,6 +67,8 @@ test("maps an existing car into edit form values with string-friendly defaults",
     color: "Black",
     license_plate: null,
     current_mileage: 12345,
+    mileage_as_of_date: "2026-04-05",
+    mileage_check_interval_days: 14,
     fuel_tank_capacity: 15.8,
     fuel_type: null,
     notes: null,
@@ -75,6 +83,8 @@ test("maps an existing car into edit form values with string-friendly defaults",
     color: "Black",
     license_plate: "",
     current_mileage: "12345",
+    mileage_as_of_date: "2026-04-05",
+    mileage_check_interval_days: "14",
     fuel_tank_capacity: "15.8",
     fuel_type: "gasoline",
     notes: "",
@@ -91,6 +101,8 @@ test("builds an update payload from only the changed editable car fields", () =>
     color: "Black",
     license_plate: null,
     current_mileage: 12345,
+    mileage_as_of_date: "2026-04-05",
+    mileage_check_interval_days: 14,
     fuel_tank_capacity: 15.8,
     fuel_type: "gasoline",
     notes: null,
@@ -105,6 +117,8 @@ test("builds an update payload from only the changed editable car fields", () =>
   formData.set("color", "Black");
   formData.set("license_plate", "");
   formData.set("current_mileage", "13000");
+  formData.set("mileage_as_of_date", "2026-04-06");
+  formData.set("mileage_check_interval_days", "14");
   formData.set("fuel_tank_capacity", "15.8");
   formData.set("fuel_type", "gasoline");
   formData.set("notes", "  Fresh detail  ");
@@ -117,6 +131,7 @@ test("builds an update payload from only the changed editable car fields", () =>
   assert.deepEqual(payload, {
     name: "Weekend Car",
     current_mileage: 13000,
+    mileage_as_of_date: "2026-04-06",
     notes: "Fresh detail",
   });
 });
@@ -131,6 +146,8 @@ test("returns an empty update payload when the edit form is unchanged", () => {
     color: "Black",
     license_plate: null,
     current_mileage: 12345,
+    mileage_as_of_date: "2026-04-05",
+    mileage_check_interval_days: 14,
     fuel_tank_capacity: 15.8,
     fuel_type: null,
     notes: null,
@@ -145,6 +162,8 @@ test("returns an empty update payload when the edit form is unchanged", () => {
   formData.set("color", "Black");
   formData.set("license_plate", "");
   formData.set("current_mileage", "12345");
+  formData.set("mileage_as_of_date", "2026-04-05");
+  formData.set("mileage_check_interval_days", "14");
   formData.set("fuel_tank_capacity", "15.8");
   formData.set("fuel_type", "gasoline");
   formData.set("notes", "");

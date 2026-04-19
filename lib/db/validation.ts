@@ -54,6 +54,8 @@ export const createCarInputSchema = z.object({
   color: nullableTrimmedString,
   license_plate: nullableTrimmedString,
   current_mileage: numberField,
+  mileage_as_of_date: isoDateString,
+  mileage_check_interval_days: z.number().int().min(1).max(365).default(14),
   fuel_tank_capacity: numberField.nullable(),
   fuel_type: nullableTrimmedString,
   image_url: z.string().url().nullable(),

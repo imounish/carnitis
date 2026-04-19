@@ -35,6 +35,8 @@ const car: Car = {
   color: null,
   license_plate: null,
   current_mileage: 12340,
+  mileage_as_of_date: "2026-03-10",
+  mileage_check_interval_days: 14,
   fuel_tank_capacity: 14.5,
   fuel_type: "gasoline",
   total_fuel_spent: 0,
@@ -91,7 +93,7 @@ function renderView(
       selectedCar={car}
       maintenanceItems={[maintenanceItem]}
       todoItems={[todoItem]}
-      recentEntries={[]}
+      entries={[]}
       {...overrides}
     />
   );
@@ -284,7 +286,7 @@ describe("EntryLogView success path", () => {
         selectedCar={car}
         maintenanceItems={[maintenanceItem]}
         todoItems={[todoItem]}
-        recentEntries={[]}
+        entries={[]}
         initialEntryType="maintenance_done"
         initialShowAdvanced
         preselectedMaintenanceItemId={maintenanceItem.id}
@@ -370,5 +372,101 @@ describe("EntryLogView success path", () => {
     expect(routerSpies.replace).toHaveBeenCalledWith("/entries?car=car-1", {
       scroll: false,
     });
+  });
+});
+
+function makeEntry(id: string, date: string, mileage: number) {
+  return {
+    id,
+    car_id: car.id,
+    entry_type: "fuel" as const,
+    date,
+    mileage,
+    fuel_gallons: null,
+    fuel_price_per_gallon: null,
+    fuel_total_cost: null,
+    fuel_station: null,
+    fuel_octane: null,
+    was_full_tank: null,
+    expense_category: null,
+    expense_amount: null,
+    description: null,
+    vendor: null,
+    parts_replaced: null,
+    maintenance_item_id: null,
+    todo_id: null,
+    notes: null,
+    created_at: "2026-01-01T00:00:00.000Z",
+    updated_at: "2026-01-01T00:00:00.000Z",
+  };
+}
+
+describe("EntryLogView mileage bounds validation", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-03-18T15:30:00.000Z"));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("shows a 'too low' error and disables submit when mileage is below lower bound", async () => {
+    const priorEntry = makeEntry("e1", "2026-03-10", 12500);
+
+    renderView({ entries: [priorEntry] });
+
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText(/Odometer/i), "12300");
+
+    expect(screen.getByText(/Must be at least 12,500 mi/i)).toBeTruthy();
+    expect(
+      (screen.getByRole("button", { name: /Save Entry/i }) as HTMLButtonElement).disabled
+    ).toBe(true);
+  });
+
+  it("shows a 'too high' error and disables submit when mileage is above upper bound", async () => {
+    const futureEntry = makeEntry("e1", "2026-03-25", 12800);
+
+    renderView({ entries: [futureEntry] });
+
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText(/Odometer/i), "13000");
+
+    expect(screen.getByText(/Must be at most 12,800 mi/i)).toBeTruthy();
+    expect(
+      (screen.getByRole("button", { name: /Save Entry/i }) as HTMLButtonElement).disabled
+    ).toBe(true);
+  });
+
+  it("shows no error and submit is enabled when mileage is within bounds", async () => {
+    const priorEntry = makeEntry("e1", "2026-03-10", 12300);
+    const futureEntry = makeEntry("e2", "2026-03-25", 12800);
+
+    renderView({ entries: [priorEntry, futureEntry] });
+
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText(/Odometer/i), "12500");
+
+    expect(screen.queryByText(/Must be/i)).toBeNull();
+    expect(
+      (screen.getByRole("button", { name: /Save Entry/i }) as HTMLButtonElement).disabled
+    ).toBe(false);
+  });
+
+  it("recomputes bounds when the date changes", async () => {
+    const priorEntry = makeEntry("e1", "2026-03-10", 12000);
+    const midEntry = makeEntry("e2", "2026-03-15", 12500);
+    const futureEntry = makeEntry("e3", "2026-03-25", 13000);
+
+    renderView({ entries: [priorEntry, midEntry, futureEntry] });
+
+    const user = userEvent.setup();
+    // Change date to 2026-03-12 (between e1 and e2) and enter mileage below e1
+    await user.clear(screen.getByLabelText(/Date/i));
+    await user.type(screen.getByLabelText(/Date/i), "2026-03-12");
+    await user.type(screen.getByLabelText(/Odometer/i), "11900");
+
+    expect(screen.getByText(/Must be at least 12,000 mi/i)).toBeTruthy();
   });
 });

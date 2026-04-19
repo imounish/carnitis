@@ -35,6 +35,8 @@ const car: Car = {
   color: null,
   license_plate: null,
   current_mileage: 12340,
+  mileage_as_of_date: "2026-03-10",
+  mileage_check_interval_days: 14,
   fuel_tank_capacity: 14.5,
   fuel_type: "gasoline",
   total_fuel_spent: 0,

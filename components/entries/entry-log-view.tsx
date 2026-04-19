@@ -21,6 +21,7 @@ import type {
   TodoItem,
 } from "@/lib/db/schema";
 import { buildCreateEntryPayloadFromFormData } from "@/lib/db/entry-payload";
+import { getMileageBounds } from "@/lib/db/mileage-bounds";
 import { RecentEntryRow } from "@/components/dashboard/recent-entry-row";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -72,7 +73,7 @@ interface EntryLogViewProps {
   selectedCar: Car | null;
   maintenanceItems: MaintenanceScheduleItem[];
   todoItems: TodoItem[];
-  recentEntries: Entry[];
+  entries: Entry[];
   initialEntryType?: EntryType;
   initialShowAdvanced?: boolean;
   preselectedMaintenanceItemId?: string | null;
@@ -85,7 +86,7 @@ export function EntryLogView({
   selectedCar,
   maintenanceItems,
   todoItems,
-  recentEntries,
+  entries,
   initialEntryType = "fuel",
   initialShowAdvanced = false,
   preselectedMaintenanceItemId = null,
@@ -103,6 +104,8 @@ export function EntryLogView({
     preselectedTodoItemId ?? NONE_OPTION
   );
   const [formVersion, setFormVersion] = React.useState(0);
+  const [entryDate, setEntryDate] = React.useState(getLocalDateInputValue());
+  const [mileageValue, setMileageValue] = React.useState("");
 
   React.useEffect(() => {
     setCarSelectValue(selectedCarId);
@@ -113,6 +116,8 @@ export function EntryLogView({
     setShowAdvanced(initialShowAdvanced);
     setLinkedMaintenanceItemId(preselectedMaintenanceItemId ?? NONE_OPTION);
     setLinkedTodoId(preselectedTodoItemId ?? NONE_OPTION);
+    setEntryDate(getLocalDateInputValue());
+    setMileageValue("");
     setFormVersion((version) => version + 1);
   }, [
     selectedCarId,
@@ -171,6 +176,8 @@ export function EntryLogView({
       setShowAdvanced(false);
       setLinkedMaintenanceItemId(NONE_OPTION);
       setLinkedTodoId(NONE_OPTION);
+      setEntryDate(getLocalDateInputValue());
+      setMileageValue("");
       setFormVersion((version) => version + 1);
       startTransition(() => {
         router.replace(`/entries?car=${encodeURIComponent(selectedCarId)}`, {
@@ -217,6 +224,17 @@ export function EntryLogView({
   }
 
   const today = getLocalDateInputValue();
+  const bounds = getMileageBounds(entries, entryDate);
+  const parsedMileage = mileageValue ? Number(mileageValue) : null;
+  const mileageTooLow =
+    parsedMileage !== null && bounds.minEntry !== null && parsedMileage < bounds.min;
+  const mileageTooHigh =
+    parsedMileage !== null && bounds.maxEntry !== null && parsedMileage > bounds.max;
+  const mileageError = mileageTooLow
+    ? `Must be at least ${bounds.min.toLocaleString()} mi (entry on ${bounds.minEntry!.date} at ${bounds.min.toLocaleString()} mi)`
+    : mileageTooHigh
+      ? `Must be at most ${bounds.max.toLocaleString()} mi (entry on ${bounds.maxEntry!.date} at ${bounds.max.toLocaleString()} mi)`
+      : null;
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-4 pb-28 md:px-6 md:py-6 md:pb-8 lg:py-8">
@@ -303,6 +321,7 @@ export function EntryLogView({
               max={today}
               required
               className="h-10"
+              onChange={(e) => setEntryDate(e.target.value)}
             />
           </div>
           <div className="space-y-1.5">
@@ -314,11 +333,17 @@ export function EntryLogView({
               name="mileage"
               type="number"
               inputMode="numeric"
-              min={selectedCar.current_mileage}
+              min={bounds.min > 0 ? bounds.min : 0}
+              max={bounds.max !== Infinity ? bounds.max : undefined}
               placeholder={selectedCar.current_mileage.toString()}
+              value={mileageValue}
+              onChange={(e) => setMileageValue(e.target.value)}
               required
-              className="h-10"
+              className={cn("h-10", mileageError && "border-destructive")}
             />
+            {mileageError && (
+              <p className="text-[11px] text-destructive">{mileageError}</p>
+            )}
           </div>
         </div>
 
@@ -648,7 +673,7 @@ export function EntryLogView({
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 px-4 py-3 backdrop-blur-md safe-bottom-pad md:static md:border-0 md:bg-transparent md:px-0 md:py-0 md:backdrop-blur-none">
           <Button
             type="submit"
-            disabled={saving || isNavigating}
+            disabled={saving || isNavigating || mileageError !== null}
             className="h-11 w-full text-sm font-semibold"
             size="lg"
           >
@@ -678,13 +703,13 @@ export function EntryLogView({
             </p>
           </div>
         </div>
-        {recentEntries.length === 0 ? (
+        {entries.length === 0 ? (
           <div className="px-4 py-8 text-center text-sm text-muted-foreground">
             No entries logged for this car yet.
           </div>
         ) : (
           <div className="divide-y divide-border">
-            {recentEntries.map((entry) => (
+            {entries.slice(0, 8).map((entry) => (
               <RecentEntryRow key={entry.id} entry={entry} />
             ))}
           </div>

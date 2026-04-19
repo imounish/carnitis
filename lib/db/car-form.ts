@@ -1,5 +1,6 @@
 import type { Car } from "@/lib/db/schema";
 import type { CreateCarInput, UpdateCarInput } from "@/lib/db/types";
+import { getTodayLocalDateString } from "@/lib/time";
 
 const fuelTypeFallback = "gasoline";
 const editableCarKeys = [
@@ -11,6 +12,8 @@ const editableCarKeys = [
   "color",
   "license_plate",
   "current_mileage",
+  "mileage_as_of_date",
+  "mileage_check_interval_days",
   "fuel_tank_capacity",
   "fuel_type",
   "notes",
@@ -26,6 +29,8 @@ type CarFormSeed = Pick<
   | "color"
   | "license_plate"
   | "current_mileage"
+  | "mileage_as_of_date"
+  | "mileage_check_interval_days"
   | "fuel_tank_capacity"
   | "fuel_type"
   | "notes"
@@ -42,6 +47,8 @@ export interface CarFormValues {
   color: string;
   license_plate: string;
   current_mileage: string;
+  mileage_as_of_date: string;
+  mileage_check_interval_days: string;
   fuel_tank_capacity: string;
   fuel_type: string;
   notes: string;
@@ -86,6 +93,8 @@ function buildEditableCarInput(formData: FormData): EditableCarInput {
     color: getOptionalTextValue(formData, "color"),
     license_plate: getOptionalTextValue(formData, "license_plate"),
     current_mileage: getRequiredNumberValue(formData, "current_mileage"),
+    mileage_as_of_date: getTrimmedValue(formData, "mileage_as_of_date") || getTodayLocalDateString(),
+    mileage_check_interval_days: getRequiredNumberValue(formData, "mileage_check_interval_days") || 14,
     fuel_tank_capacity: getOptionalNumberValue(formData, "fuel_tank_capacity"),
     fuel_type: getNormalizedFuelType(getTrimmedValue(formData, "fuel_type")),
     notes: getOptionalTextValue(formData, "notes"),
@@ -102,6 +111,8 @@ export function getDefaultCarFormValues(): CarFormValues {
     color: "",
     license_plate: "",
     current_mileage: "",
+    mileage_as_of_date: getTodayLocalDateString(),
+    mileage_check_interval_days: "14",
     fuel_tank_capacity: "",
     fuel_type: fuelTypeFallback,
     notes: "",
@@ -118,6 +129,8 @@ export function getCarFormValues(car: CarFormSeed): CarFormValues {
     color: car.color ?? "",
     license_plate: car.license_plate ?? "",
     current_mileage: String(car.current_mileage),
+    mileage_as_of_date: car.mileage_as_of_date,
+    mileage_check_interval_days: String(car.mileage_check_interval_days),
     fuel_tank_capacity: car.fuel_tank_capacity == null ? "" : String(car.fuel_tank_capacity),
     fuel_type: getNormalizedFuelType(car.fuel_type),
     notes: car.notes ?? "",
@@ -134,6 +147,8 @@ export function getEditableCarInputFromCar(car: CarFormSeed): EditableCarInput {
     color: car.color,
     license_plate: car.license_plate,
     current_mileage: car.current_mileage,
+    mileage_as_of_date: car.mileage_as_of_date,
+    mileage_check_interval_days: car.mileage_check_interval_days,
     fuel_tank_capacity: car.fuel_tank_capacity,
     fuel_type: getNormalizedFuelType(car.fuel_type),
     notes: car.notes,

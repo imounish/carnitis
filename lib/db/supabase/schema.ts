@@ -16,6 +16,8 @@ export interface CarsTable {
   color: string | null;
   license_plate: string | null;
   current_mileage: NumericValue;
+  mileage_as_of_date: string;
+  mileage_check_interval_days: number;
   fuel_tank_capacity: NumericValue | null;
   fuel_type: string | null;
   total_fuel_spent: NumericValue;

@@ -19,6 +19,8 @@ test("car mapper normalizes numeric and timestamp values", () => {
     color: null,
     license_plate: null,
     current_mileage: "12345.6",
+    mileage_as_of_date: "2026-03-17",
+    mileage_check_interval_days: 14,
     fuel_tank_capacity: "15.8",
     fuel_type: "gasoline",
     total_fuel_spent: "300.50",
@@ -32,9 +34,41 @@ test("car mapper normalizes numeric and timestamp values", () => {
   });
 
   assert.equal(car.current_mileage, 12345.6);
+  assert.equal(car.mileage_as_of_date, "2026-03-17");
+  assert.equal(car.mileage_check_interval_days, 14);
   assert.equal(car.fuel_tank_capacity, 15.8);
   assert.equal(car.total_fuel_spent, 300.5);
   assert.equal(car.updated_at, "2026-03-17T12:00:00.000Z");
+});
+
+test("car mapper normalizes mileage_as_of_date from Date object to ISO date string", () => {
+  const car = mapCarRow({
+    id: "car-2",
+    owner_user_id: "user-1",
+    name: "Weekend Car",
+    make: "Honda",
+    model: "Civic",
+    year: 2022,
+    vin: null,
+    color: null,
+    license_plate: null,
+    current_mileage: "5000",
+    mileage_as_of_date: new Date("2026-04-01T05:00:00.000Z"),
+    mileage_check_interval_days: 30,
+    fuel_tank_capacity: null,
+    fuel_type: "gasoline",
+    total_fuel_spent: "0.00",
+    total_maintenance_spent: "0.00",
+    total_improvements_spent: "0.00",
+    total_repairs_spent: "0.00",
+    image_url: null,
+    notes: null,
+    created_at: "2026-04-01T00:00:00.000Z",
+    updated_at: "2026-04-01T00:00:00.000Z",
+  });
+
+  assert.equal(car.mileage_as_of_date, "2026-04-01");
+  assert.equal(car.mileage_check_interval_days, 30);
 });
 
 test("entry mapper preserves optional linkage fields", () => {

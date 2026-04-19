@@ -87,6 +87,7 @@ export function CarDetailView({ car }: { car: Car }) {
           label="Mileage"
           value={formatMileage(car.current_mileage)}
           icon={Gauge}
+          subtitle={`as of ${car.mileage_as_of_date}`}
           compact
         />
         <StatCard

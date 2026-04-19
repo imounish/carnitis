@@ -226,6 +226,32 @@ export function CarForm(props: CarFormProps | EditCarFormProps) {
             />
           </div>
           <div className="space-y-2">
+            <Label htmlFor="mileage_as_of_date">As of Date *</Label>
+            <Input
+              id="mileage_as_of_date"
+              name="mileage_as_of_date"
+              type="date"
+              defaultValue={initialValues.mileage_as_of_date}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="mileage_check_interval_days">Check Interval (days)</Label>
+            <Input
+              id="mileage_check_interval_days"
+              name="mileage_check_interval_days"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={365}
+              defaultValue={initialValues.mileage_check_interval_days}
+              placeholder="14"
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="space-y-2">
             <Label htmlFor="fuel_tank_capacity">Tank Capacity (gal)</Label>
             <Input
               id="fuel_tank_capacity"
