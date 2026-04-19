@@ -10,6 +10,7 @@ interface MaintenanceLinkRow {
   id: string;
   interval_miles: number;
   interval_months: number | null;
+  last_done_mileage: number | null;
 }
 
 function isPool(db: Queryable): db is Pool {
@@ -52,18 +53,61 @@ export async function createEntryWorkflow({
       throw createDataAccessLikeError("not_found", "That car could not be found.");
     }
 
+    // Chronological mileage validation: reject if mileage is outside the bounds
+    // set by the entries immediately before and after this entry's date.
+    const [beforeResult, afterResult] = await Promise.all([
+      client.query<{ mileage: number; date: string }>(
+        `
+          select mileage, date::text
+          from public.entries
+          where car_id = $1 and owner_user_id = $2 and date <= $3
+          order by date desc, mileage desc
+          limit 1
+        `,
+        [entry.car_id, userId, entry.date]
+      ),
+      client.query<{ mileage: number; date: string }>(
+        `
+          select mileage, date::text
+          from public.entries
+          where car_id = $1 and owner_user_id = $2 and date >= $3
+          order by date asc, mileage asc
+          limit 1
+        `,
+        [entry.car_id, userId, entry.date]
+      ),
+    ]);
+
+    const beforeEntry = beforeResult.rows[0] ?? null;
+    const afterEntry = afterResult.rows[0] ?? null;
+    const entryMileage = Number(entry.mileage);
+
+    if (beforeEntry && entryMileage < Number(beforeEntry.mileage)) {
+      throw createDataAccessLikeError(
+        "validation",
+        `Mileage must be at least ${Number(beforeEntry.mileage).toLocaleString()} mi (entry on ${beforeEntry.date}).`
+      );
+    }
+    if (afterEntry && entryMileage > Number(afterEntry.mileage)) {
+      throw createDataAccessLikeError(
+        "validation",
+        `Mileage must be at most ${Number(afterEntry.mileage).toLocaleString()} mi (entry on ${afterEntry.date}).`
+      );
+    }
+
     let maintenanceLink: MaintenanceLinkRow | null = null;
     if (entry.maintenance_item_id) {
       const result = await client.query<MaintenanceLinkRow>(
         `
-          select id, interval_miles, interval_months
+          select id, interval_miles, interval_months, last_done_mileage
           from public.maintenance_schedule_items
           where id = $1
             and owner_user_id = $2
             and car_id = $3
+            and (last_done_mileage is null or last_done_mileage <= $4)
           for update
         `,
-        [entry.maintenance_item_id, userId, entry.car_id]
+        [entry.maintenance_item_id, userId, entry.car_id, entry.mileage]
       );
 
       if (result.rowCount !== 1) {
@@ -77,6 +121,9 @@ export async function createEntryWorkflow({
         id: result.rows[0].id,
         interval_miles: Number(result.rows[0].interval_miles),
         interval_months: result.rows[0].interval_months,
+        last_done_mileage: result.rows[0].last_done_mileage !== null
+          ? Number(result.rows[0].last_done_mileage)
+          : null,
       };
     }
 
@@ -162,6 +209,7 @@ export async function createEntryWorkflow({
         update public.cars
         set
           current_mileage = greatest(current_mileage, $3),
+          mileage_as_of_date = case when $3 > current_mileage then $8 else mileage_as_of_date end,
           total_fuel_spent = total_fuel_spent + $4,
           total_maintenance_spent = total_maintenance_spent + $5,
           total_improvements_spent = total_improvements_spent + $6,
@@ -180,6 +228,7 @@ export async function createEntryWorkflow({
           : 0,
         entry.expense_category === "improvements" ? amount : 0,
         entry.expense_category === "repairs" ? amount : 0,
+        entry.date,
       ]
     );
 

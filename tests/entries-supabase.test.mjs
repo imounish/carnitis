@@ -146,7 +146,6 @@ test(
       if (canReachDatabase) {
         await cleanupOwnedTestData(pool, userA, userB);
       }
-
       await pool.end();
     }
   }
@@ -489,7 +488,186 @@ test(
       if (canReachDatabase) {
         await cleanupOwnedTestData(pool, userA, userB);
       }
+      await pool.end();
+    }
+  }
+);
 
+test(
+  "createEntryWorkflow rejects chronologically inconsistent mileage",
+  { skip: !loadLocalEnv() },
+  async (t) => {
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    const suffix = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+    const userA = `entries-chron-a-${suffix}`;
+    const emailA = `entries-chron-a-${suffix}@example.com`;
+    let canReachDatabase = false;
+
+    try {
+      try {
+        await pool.query("select 1");
+        canReachDatabase = true;
+      } catch (error) {
+        const code = error && typeof error === "object" ? error.code : undefined;
+        if (code === "EPERM" || code === "ECONNREFUSED") {
+          t.skip("Local Supabase is not reachable from this environment.");
+          return;
+        }
+        throw error;
+      }
+
+      await pool.query(
+        `insert into public."user" (id, name, email, "emailVerified", "createdAt", "updatedAt")
+         values ($1, 'Chron A', $2, true, timezone('utc', now()), timezone('utc', now()))`,
+        [userA, emailA]
+      );
+
+      const { rows: carRows } = await pool.query(
+        `insert into public.cars (owner_user_id, name, make, model, year, current_mileage, fuel_type)
+         values ($1, 'Chron Car', 'Toyota', 'Camry', 2024, 100, 'gasoline') returning id`,
+        [userA]
+      );
+      const carId = carRows[0].id;
+
+      // Seed prior and future entries
+      await pool.query(
+        `insert into public.entries (owner_user_id, car_id, entry_type, date, mileage, expense_category, description)
+         values
+           ($1, $2, 'fuel', '2026-03-10', 200, 'fuel', 'Prior'),
+           ($1, $2, 'fuel', '2026-03-20', 300, 'fuel', 'Future')`,
+        [userA, carId]
+      );
+
+      const baseInput = {
+        car_id: carId,
+        entry_type: "fuel",
+        date: "2026-03-15",
+        fuel_gallons: 10,
+        fuel_price_per_gallon: 3.5,
+        fuel_total_cost: 35,
+        fuel_station: null,
+        fuel_octane: "87",
+        was_full_tank: true,
+        expense_category: "fuel",
+        expense_amount: 35,
+        vendor: null,
+        parts_replaced: null,
+        maintenance_item_id: null,
+        todo_id: null,
+        notes: null,
+      };
+
+      // Mileage below prior entry → reject
+      await assert.rejects(
+        () => createEntryWorkflow({ db: pool, userId: userA, input: { ...baseInput, mileage: 150, description: "Too low" } }),
+        (error) => { assert.equal(error.code, "validation"); assert.match(error.message, /at least/i); return true; }
+      );
+
+      // Mileage above future entry → reject
+      await assert.rejects(
+        () => createEntryWorkflow({ db: pool, userId: userA, input: { ...baseInput, mileage: 350, description: "Too high" } }),
+        (error) => { assert.equal(error.code, "validation"); assert.match(error.message, /at most/i); return true; }
+      );
+
+      // Valid mileage in bounds → accept
+      const valid = await createEntryWorkflow({
+        db: pool, userId: userA, input: { ...baseInput, mileage: 250, description: "Valid" }
+      });
+      assert.equal(valid.mileage, 250);
+    } finally {
+      if (canReachDatabase) {
+        await cleanupOwnedTestData(pool, userA);
+      }
+      await pool.end();
+    }
+  }
+);
+
+test(
+  "createEntryWorkflow maintenance guard: backfill does not regress schedule, forward entry updates it",
+  { skip: !loadLocalEnv() },
+  async (t) => {
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    const suffix = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+    const userA = `entries-guard-a-${suffix}`;
+    const emailA = `entries-guard-a-${suffix}@example.com`;
+    let canReachDatabase = false;
+
+    try {
+      try {
+        await pool.query("select 1");
+        canReachDatabase = true;
+      } catch (error) {
+        const code = error && typeof error === "object" ? error.code : undefined;
+        if (code === "EPERM" || code === "ECONNREFUSED") {
+          t.skip("Local Supabase is not reachable from this environment.");
+          return;
+        }
+        throw error;
+      }
+
+      await pool.query(
+        `insert into public."user" (id, name, email, "emailVerified", "createdAt", "updatedAt")
+         values ($1, 'Guard A', $2, true, timezone('utc', now()), timezone('utc', now()))`,
+        [userA, emailA]
+      );
+
+      const { rows: carRows } = await pool.query(
+        `insert into public.cars (owner_user_id, name, make, model, year, current_mileage, fuel_type)
+         values ($1, 'Guard Car', 'Toyota', 'Camry', 2024, 200, 'gasoline') returning id`,
+        [userA]
+      );
+      const carId = carRows[0].id;
+
+      const { rows: maintRows } = await pool.query(
+        `insert into public.maintenance_schedule_items
+           (owner_user_id, car_id, name, interval_miles, interval_months, last_done_mileage, status)
+         values ($1, $2, 'Oil Change', 5000, 6, 200, 'upcoming') returning id`,
+        [userA, carId]
+      );
+      const maintId = maintRows[0].id;
+
+      const baseInput = {
+        car_id: carId,
+        entry_type: "maintenance_done",
+        fuel_gallons: null,
+        fuel_price_per_gallon: null,
+        fuel_total_cost: null,
+        fuel_station: null,
+        fuel_octane: null,
+        was_full_tank: null,
+        expense_category: "regular_maintenance",
+        expense_amount: null,
+        vendor: null,
+        parts_replaced: null,
+        maintenance_item_id: maintId,
+        todo_id: null,
+        notes: null,
+      };
+
+      // Backfill at mileage < last_done_mileage → guard rejects
+      await assert.rejects(
+        () => createEntryWorkflow({
+          db: pool, userId: userA, input: { ...baseInput, date: "2026-02-01", mileage: 150, description: "Old oil change" }
+        }),
+        (error) => { assert.equal(error.code, "validation"); assert.match(error.message, /maintenance item/i); return true; }
+      );
+
+      // Forward entry at mileage > last_done_mileage → updates schedule
+      await createEntryWorkflow({
+        db: pool, userId: userA, input: { ...baseInput, date: "2026-03-01", mileage: 250, description: "New oil change" }
+      });
+
+      const { rows } = await pool.query(
+        `select last_done_mileage, next_due_mileage from public.maintenance_schedule_items where id = $1`,
+        [maintId]
+      );
+      assert.equal(Number(rows[0].last_done_mileage), 250);
+      assert.equal(Number(rows[0].next_due_mileage), 5250);
+    } finally {
+      if (canReachDatabase) {
+        await cleanupOwnedTestData(pool, userA);
+      }
       await pool.end();
     }
   }

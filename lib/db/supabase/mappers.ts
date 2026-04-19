@@ -47,6 +47,8 @@ export function mapCarRow(row: CarRow): Car {
     color: row.color,
     license_plate: row.license_plate,
     current_mileage: toRequiredNumber(row.current_mileage),
+    mileage_as_of_date: toIsoDateOnly(row.mileage_as_of_date) ?? row.mileage_as_of_date,
+    mileage_check_interval_days: row.mileage_check_interval_days,
     fuel_tank_capacity: toNumber(row.fuel_tank_capacity),
     fuel_type: row.fuel_type,
     total_fuel_spent: toRequiredNumber(row.total_fuel_spent),

@@ -47,6 +47,8 @@ export interface Car {
   color: string | null;
   license_plate: string | null;
   current_mileage: number;         // latest odometer reading
+  mileage_as_of_date: string;      // ISO date of the most recent mileage reading
+  mileage_check_interval_days: number; // how often to prompt for a mileage update
   fuel_tank_capacity: number | null; // in gallons
   fuel_type: string | null;        // e.g., "gasoline", "diesel", "electric"
   total_fuel_spent: number;        // running total $

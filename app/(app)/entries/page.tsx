@@ -28,7 +28,7 @@ export default async function EntriesPage({
           selectedCar={null}
           maintenanceItems={[]}
           todoItems={[]}
-          recentEntries={[]}
+          entries={[]}
           preselectedTodoItemId={null}
         />
       </AppShell>
@@ -67,7 +67,7 @@ export default async function EntriesPage({
         selectedCar={selectedCar}
         maintenanceItems={maintenanceItems}
         todoItems={eligibleTodoItems}
-        recentEntries={entries.slice(0, 8)}
+        entries={entries}
         initialEntryType={
           shouldPrefillService || shouldPrefillTodoAsService
             ? "maintenance_done"

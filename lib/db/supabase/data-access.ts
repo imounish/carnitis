@@ -40,6 +40,8 @@ function getCarJoin(row: {
   car_color: string | null;
   car_license_plate: string | null;
   car_current_mileage: string | number;
+  car_mileage_as_of_date: string;
+  car_mileage_check_interval_days: number;
   car_fuel_tank_capacity: string | number | null;
   car_fuel_type: string | null;
   car_total_fuel_spent: string | number;
@@ -62,6 +64,8 @@ function getCarJoin(row: {
     color: row.car_color,
     license_plate: row.car_license_plate,
     current_mileage: row.car_current_mileage,
+    mileage_as_of_date: row.car_mileage_as_of_date,
+    mileage_check_interval_days: row.car_mileage_check_interval_days,
     fuel_tank_capacity: row.car_fuel_tank_capacity,
     fuel_type: row.car_fuel_type,
     total_fuel_spent: row.car_total_fuel_spent,
@@ -147,6 +151,8 @@ export function createSupabaseDataAccess(context: RepositoryContext): DataAccess
                 color: car.color,
                 license_plate: car.license_plate,
                 current_mileage: car.current_mileage,
+                mileage_as_of_date: car.mileage_as_of_date,
+                mileage_check_interval_days: car.mileage_check_interval_days,
                 fuel_tank_capacity: car.fuel_tank_capacity,
                 fuel_type: car.fuel_type,
                 total_fuel_spent: 0,
@@ -260,6 +266,8 @@ export function createSupabaseDataAccess(context: RepositoryContext): DataAccess
                 "cars.color as car_color",
                 "cars.license_plate as car_license_plate",
                 "cars.current_mileage as car_current_mileage",
+                "cars.mileage_as_of_date as car_mileage_as_of_date",
+                "cars.mileage_check_interval_days as car_mileage_check_interval_days",
                 "cars.fuel_tank_capacity as car_fuel_tank_capacity",
                 "cars.fuel_type as car_fuel_type",
                 "cars.total_fuel_spent as car_total_fuel_spent",
@@ -407,6 +415,8 @@ export function createSupabaseDataAccess(context: RepositoryContext): DataAccess
                 "cars.color as car_color",
                 "cars.license_plate as car_license_plate",
                 "cars.current_mileage as car_current_mileage",
+                "cars.mileage_as_of_date as car_mileage_as_of_date",
+                "cars.mileage_check_interval_days as car_mileage_check_interval_days",
                 "cars.fuel_tank_capacity as car_fuel_tank_capacity",
                 "cars.fuel_type as car_fuel_type",
                 "cars.total_fuel_spent as car_total_fuel_spent",
@@ -577,6 +587,8 @@ export function createSupabaseDataAccess(context: RepositoryContext): DataAccess
                 "cars.color as car_color",
                 "cars.license_plate as car_license_plate",
                 "cars.current_mileage as car_current_mileage",
+                "cars.mileage_as_of_date as car_mileage_as_of_date",
+                "cars.mileage_check_interval_days as car_mileage_check_interval_days",
                 "cars.fuel_tank_capacity as car_fuel_tank_capacity",
                 "cars.fuel_type as car_fuel_type",
                 "cars.total_fuel_spent as car_total_fuel_spent",
