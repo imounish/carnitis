@@ -52,6 +52,7 @@ This is the single source of truth for planned implementation work in `carnitis`
 
 | ID | Title | Priority | Status | Depends On | Plan |
 |---|---|---|---|---|---|
+| T025 | Fuel Level Before Fill-Up — Partial Fill Range Accuracy | P1 | todo | T007 | `IP-025-fuel-level-before-fill.md` |
 | T024 | Codebase Simplification + Code Quality Hardening | P1 | todo | T020 | `IP-024-codebase-simplification.md` |
 | T012 | Accessibility Hardening (keyboard nav, contrast, ARIA, focus management) | P1 | todo | T020 | `IP-012-accessibility-hardening.md` |
 | T015 | Test Strategy: Integration Write Flows + E2E Smoke | P1 | todo | T020 | `IP-015-test-strategy-baseline.md` |
@@ -90,6 +91,9 @@ Remove `ignoreBuildErrors: true` from `next.config.mjs`. Add security headers (C
 
 ### T021: Deployment + Hosting Configuration
 Git remote setup, hosting platform (Vercel recommended), production Supabase project, environment variables, domain/SSL, successful production build and deployment.
+
+### T025: Fuel Level Before Fill-Up
+Add an optional `fuel_level_before` (0–100%) field to fuel entries so the range estimate uses the actual post-fill tank level instead of assuming a full tank. Requires a one-column additive migration, Zod schema update, row mapper update, stats service update (range formula only), and a UI input on the fuel entry form. MPG calculation (full-tank window) is unchanged.
 
 ### T024: Codebase Simplification + Code Quality Hardening
 Systematic pass to eliminate duplication (~1,300 lines of consolidation potential). Seven sub-tasks:
