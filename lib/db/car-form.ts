@@ -1,6 +1,6 @@
 import type { Car } from "@/lib/db/schema";
 import type { CreateCarInput, UpdateCarInput } from "@/lib/db/types";
-import { getTodayLocalDateString } from "@/lib/time";
+import { getTodayLocalDateString } from "../time.js";
 
 const fuelTypeFallback = "gasoline";
 const editableCarKeys = [

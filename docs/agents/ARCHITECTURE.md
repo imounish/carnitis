@@ -56,6 +56,7 @@ Better Auth integration note:
 - Treat maintenance `status` as derived server-owned output from canonical due fields plus current mileage/date. Persist it for convenience, but do not trust the stored value on reads when the canonical inputs are already available.
 - When two routes can express the same business event, converge on one transactional path rather than duplicating logic. Maintenance completion now routes through `/entries` instead of adding a second maintenance-only completion workflow.
 - Keep shared selectors scoped to the surface they already serve. For todos, `listAll()` stays dashboard-active-only; route-wide “all cars” views that need completed rows should aggregate per-car reads instead of widening the shared selector and regressing another screen.
+- If local migration history says a migration is applied but the table shape disagrees with current domain types, add an idempotent repair migration. Do not weaken repository queries to tolerate a schema that violates the app contract.
 
 ## 6. Error Handling Strategy
 - Return typed errors from services.

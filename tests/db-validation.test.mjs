@@ -17,6 +17,8 @@ test("create car validation trims strings and preserves nullable values", () => 
     color: " Black ",
     license_plate: null,
     current_mileage: 1234,
+    mileage_as_of_date: "2026-04-05",
+    mileage_check_interval_days: 14,
     fuel_tank_capacity: 15.8,
     fuel_type: " gasoline ",
     image_url: null,
@@ -27,6 +29,8 @@ test("create car validation trims strings and preserves nullable values", () => 
   assert.equal(input.make, "Toyota");
   assert.equal(input.model, "Camry");
   assert.equal(input.color, "Black");
+  assert.equal(input.mileage_as_of_date, "2026-04-05");
+  assert.equal(input.mileage_check_interval_days, 14);
   assert.equal(input.fuel_type, "gasoline");
   assert.equal(input.notes, "Bought used");
 });
