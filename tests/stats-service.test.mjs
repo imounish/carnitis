@@ -30,6 +30,22 @@ function createMockCar(overrides = {}) {
   };
 }
 
+function createFuelEntry(overrides = {}) {
+  return {
+    id: "entry",
+    car_id: "car-1",
+    entry_type: "fuel",
+    date: "2026-03-01",
+    mileage: 0,
+    fuel_gallons: 10,
+    was_full_tank: true,
+    fuel_level_before: null,
+    expense_category: "fuel",
+    expense_amount: 35,
+    ...overrides,
+  };
+}
+
 function createFakeDataAccess({ cars = [], entries = [], maintenance = [], todos = [] } = {}) {
   return {
     cars: {
@@ -117,6 +133,7 @@ test("getCarStatsFromDataAccess computes totals for existing car", async () => {
         mileage: 49800,
         fuel_gallons: 10,
         was_full_tank: true,
+        fuel_level_before: null,
         expense_category: "fuel",
         expense_amount: 35,
       },
@@ -128,6 +145,7 @@ test("getCarStatsFromDataAccess computes totals for existing car", async () => {
         mileage: 50000,
         fuel_gallons: 8,
         was_full_tank: true,
+        fuel_level_before: null,
         expense_category: "fuel",
         expense_amount: 30,
       },
@@ -148,5 +166,354 @@ test("getCarStatsFromDataAccess computes totals for existing car", async () => {
   assert.equal(stats.pendingTodos, 1);
   assert.equal(stats.totalEntries, 2);
   assert.equal(stats.fuelEntryCount, 2);
-  assert.ok(stats.avgMpg > 0); // 200 miles / 10 gallons = 20 mpg
+  assert.equal(stats.avgMpg, 25);
+  assert.equal(stats.estimatedRange, 363);
+});
+
+test("getCarStatsFromDataAccess estimates range from fuel level before partial fill", async () => {
+  const car = createMockCar({
+    current_mileage: 50100,
+    fuel_tank_capacity: 20,
+  });
+  const dataAccess = createFakeDataAccess({
+    cars: [car],
+    entries: [
+      {
+        id: "e-1",
+        car_id: "car-1",
+        entry_type: "fuel",
+        date: "2026-03-01",
+        mileage: 48800,
+        fuel_gallons: 10,
+        was_full_tank: true,
+        fuel_level_before: null,
+        expense_category: "fuel",
+        expense_amount: 35,
+      },
+      {
+        id: "e-2",
+        car_id: "car-1",
+        entry_type: "fuel",
+        date: "2026-03-10",
+        mileage: 49000,
+        fuel_gallons: 10,
+        was_full_tank: true,
+        fuel_level_before: null,
+        expense_category: "fuel",
+        expense_amount: 30,
+      },
+      {
+        id: "e-3",
+        car_id: "car-1",
+        entry_type: "fuel",
+        date: "2026-03-17",
+        mileage: 50000,
+        fuel_gallons: 5,
+        was_full_tank: false,
+        fuel_level_before: 25,
+        expense_category: "fuel",
+        expense_amount: 20,
+      },
+    ],
+  });
+
+  const stats = await getCarStatsFromDataAccess(dataAccess, "car-1");
+
+  assert.equal(stats.avgMpg, 20);
+  assert.equal(stats.estimatedRange, 100);
+});
+
+test("getCarStatsFromDataAccess falls back to an older fuel entry with a level signal", async () => {
+  const car = createMockCar({
+    current_mileage: 50100,
+    fuel_tank_capacity: 20,
+  });
+  const dataAccess = createFakeDataAccess({
+    cars: [car],
+    entries: [
+      {
+        id: "e-1",
+        car_id: "car-1",
+        entry_type: "fuel",
+        date: "2026-03-01",
+        mileage: 48800,
+        fuel_gallons: 10,
+        was_full_tank: true,
+        fuel_level_before: null,
+        expense_category: "fuel",
+        expense_amount: 35,
+      },
+      {
+        id: "e-2",
+        car_id: "car-1",
+        entry_type: "fuel",
+        date: "2026-03-10",
+        mileage: 49000,
+        fuel_gallons: 10,
+        was_full_tank: true,
+        fuel_level_before: null,
+        expense_category: "fuel",
+        expense_amount: 30,
+      },
+      {
+        id: "e-3",
+        car_id: "car-1",
+        entry_type: "fuel",
+        date: "2026-03-17",
+        mileage: 50000,
+        fuel_gallons: 5,
+        was_full_tank: false,
+        fuel_level_before: null,
+        expense_category: "fuel",
+        expense_amount: 20,
+      },
+    ],
+  });
+
+  const stats = await getCarStatsFromDataAccess(dataAccess, "car-1");
+
+  assert.equal(stats.avgMpg, 20);
+  assert.equal(stats.estimatedRange, 0);
+});
+
+test("getCarStatsFromDataAccess orders usable range signals by date before mileage", async () => {
+  const car = createMockCar({
+    current_mileage: 1000,
+    fuel_tank_capacity: 20,
+  });
+  const dataAccess = createFakeDataAccess({
+    cars: [car],
+    entries: [
+      createFuelEntry({
+        id: "full-1",
+        date: "2026-03-01",
+        mileage: 1000,
+        fuel_gallons: 10,
+      }),
+      createFuelEntry({
+        id: "full-2",
+        date: "2026-02-20",
+        mileage: 800,
+        fuel_gallons: 10,
+      }),
+      createFuelEntry({
+        id: "newer-by-date",
+        date: "2026-03-20",
+        mileage: 900,
+        fuel_gallons: 0,
+        was_full_tank: false,
+        fuel_level_before: 50,
+      }),
+      createFuelEntry({
+        id: "older-by-date-higher-mileage",
+        date: "2026-03-10",
+        mileage: 1100,
+        fuel_gallons: 0,
+        was_full_tank: false,
+        fuel_level_before: 10,
+      }),
+    ],
+  });
+
+  const stats = await getCarStatsFromDataAccess(dataAccess, "car-1");
+
+  assert.equal(stats.avgMpg, 20);
+  assert.equal(stats.estimatedRange, 100);
+});
+
+test("getCarStatsFromDataAccess gives full-tank entries priority over fuel level before fill", async () => {
+  const car = createMockCar({
+    current_mileage: 50100,
+    fuel_tank_capacity: 20,
+  });
+  const dataAccess = createFakeDataAccess({
+    cars: [car],
+    entries: [
+      createFuelEntry({
+        id: "full-1",
+        date: "2026-03-01",
+        mileage: 49600,
+      }),
+      createFuelEntry({
+        id: "full-2",
+        date: "2026-03-10",
+        mileage: 49800,
+      }),
+      createFuelEntry({
+        id: "conflicting-latest",
+        date: "2026-03-17",
+        mileage: 50000,
+        was_full_tank: true,
+        fuel_level_before: 25,
+      }),
+    ],
+  });
+
+  const stats = await getCarStatsFromDataAccess(dataAccess, "car-1");
+
+  assert.equal(stats.avgMpg, 20);
+  assert.equal(stats.estimatedRange, 300);
+});
+
+test("getCarStatsFromDataAccess caps partial-fill gallons at tank capacity", async () => {
+  const car = createMockCar({
+    current_mileage: 50000,
+    fuel_tank_capacity: 20,
+  });
+  const dataAccess = createFakeDataAccess({
+    cars: [car],
+    entries: [
+      createFuelEntry({
+        id: "full-1",
+        date: "2026-03-01",
+        mileage: 48800,
+      }),
+      createFuelEntry({
+        id: "full-2",
+        date: "2026-03-10",
+        mileage: 49000,
+      }),
+      createFuelEntry({
+        id: "over-capacity",
+        date: "2026-03-17",
+        mileage: 50000,
+        fuel_gallons: 10,
+        was_full_tank: false,
+        fuel_level_before: 80,
+      }),
+    ],
+  });
+
+  const stats = await getCarStatsFromDataAccess(dataAccess, "car-1");
+
+  assert.equal(stats.avgMpg, 20);
+  assert.equal(stats.estimatedRange, 400);
+});
+
+test("getCarStatsFromDataAccess uses zero percent fuel level before fill", async () => {
+  const car = createMockCar({
+    current_mileage: 50050,
+    fuel_tank_capacity: 20,
+  });
+  const dataAccess = createFakeDataAccess({
+    cars: [car],
+    entries: [
+      createFuelEntry({
+        id: "full-1",
+        date: "2026-03-01",
+        mileage: 48800,
+      }),
+      createFuelEntry({
+        id: "full-2",
+        date: "2026-03-10",
+        mileage: 49000,
+      }),
+      createFuelEntry({
+        id: "empty-before-fill",
+        date: "2026-03-17",
+        mileage: 50000,
+        fuel_gallons: 5,
+        was_full_tank: false,
+        fuel_level_before: 0,
+      }),
+    ],
+  });
+
+  const stats = await getCarStatsFromDataAccess(dataAccess, "car-1");
+
+  assert.equal(stats.avgMpg, 20);
+  assert.equal(stats.estimatedRange, 50);
+});
+
+test("getCarStatsFromDataAccess returns null range for partial fill without tank capacity", async () => {
+  const car = createMockCar({
+    current_mileage: 50050,
+    fuel_tank_capacity: null,
+  });
+  const dataAccess = createFakeDataAccess({
+    cars: [car],
+    entries: [
+      createFuelEntry({
+        id: "full-1",
+        date: "2026-03-01",
+        mileage: 48800,
+      }),
+      createFuelEntry({
+        id: "full-2",
+        date: "2026-03-10",
+        mileage: 49000,
+      }),
+      createFuelEntry({
+        id: "partial",
+        date: "2026-03-17",
+        mileage: 50000,
+        fuel_gallons: 5,
+        was_full_tank: false,
+        fuel_level_before: 25,
+      }),
+    ],
+  });
+
+  const stats = await getCarStatsFromDataAccess(dataAccess, "car-1");
+
+  assert.equal(stats.avgMpg, 20);
+  assert.equal(stats.estimatedRange, null);
+});
+
+test("getCarStatsFromDataAccess returns null range for partial fill without average mpg", async () => {
+  const car = createMockCar({
+    current_mileage: 50050,
+    fuel_tank_capacity: 20,
+  });
+  const dataAccess = createFakeDataAccess({
+    cars: [car],
+    entries: [
+      createFuelEntry({
+        id: "partial",
+        date: "2026-03-17",
+        mileage: 50000,
+        fuel_gallons: 5,
+        was_full_tank: false,
+        fuel_level_before: 25,
+      }),
+    ],
+  });
+
+  const stats = await getCarStatsFromDataAccess(dataAccess, "car-1");
+
+  assert.equal(stats.avgMpg, 0);
+  assert.equal(stats.estimatedRange, null);
+});
+
+test("getCarStatsFromDataAccess returns null range when no fuel entry has a level signal", async () => {
+  const car = createMockCar({
+    current_mileage: 50100,
+    fuel_tank_capacity: 20,
+  });
+  const dataAccess = createFakeDataAccess({
+    cars: [car],
+    entries: [
+      createFuelEntry({
+        id: "partial-1",
+        date: "2026-03-01",
+        mileage: 48800,
+        fuel_gallons: 10,
+        was_full_tank: false,
+        fuel_level_before: null,
+      }),
+      createFuelEntry({
+        id: "partial-2",
+        date: "2026-03-17",
+        mileage: 50000,
+        fuel_gallons: 5,
+        was_full_tank: false,
+        fuel_level_before: null,
+      }),
+    ],
+  });
+
+  const stats = await getCarStatsFromDataAccess(dataAccess, "car-1");
+
+  assert.equal(stats.avgMpg, 0);
+  assert.equal(stats.estimatedRange, null);
 });

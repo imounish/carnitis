@@ -49,6 +49,7 @@ test("entry validation rejects malformed dates", () => {
         fuel_station: "Shell",
         fuel_octane: "87",
         was_full_tank: true,
+        fuel_level_before: null,
         expense_category: "fuel",
         expense_amount: 35,
         description: null,
@@ -83,6 +84,7 @@ test("entry validation rejects future dates", () => {
         fuel_station: "Shell",
         fuel_octane: "87",
         was_full_tank: true,
+        fuel_level_before: null,
         expense_category: "fuel",
         expense_amount: 35,
         description: null,
@@ -93,6 +95,34 @@ test("entry validation rejects future dates", () => {
         notes: null,
       }),
     /future/i
+  );
+});
+
+test("entry validation rejects invalid fuel level before fill", () => {
+  assert.throws(
+    () =>
+      parseCreateEntryInput({
+        car_id: "car-1",
+        entry_type: "fuel",
+        date: "2026-03-17",
+        mileage: 2000,
+        fuel_gallons: 10,
+        fuel_price_per_gallon: 3.5,
+        fuel_total_cost: 35,
+        fuel_station: "Shell",
+        fuel_octane: "87",
+        was_full_tank: true,
+        fuel_level_before: 101,
+        expense_category: "fuel",
+        expense_amount: 35,
+        description: null,
+        vendor: null,
+        parts_replaced: null,
+        maintenance_item_id: null,
+        todo_id: null,
+        notes: null,
+      }),
+    /less than or equal to 100|number/i
   );
 });
 

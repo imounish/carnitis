@@ -132,6 +132,7 @@ describe("EntryLogView success path", () => {
     await user.type(screen.getByLabelText(/Gallons/i), "11.5");
     await user.type(screen.getByLabelText(/\$\/Gallon/i), "3.499");
     await user.type(screen.getByLabelText(/Station/i), "Shell");
+    await user.type(screen.getByLabelText(/Fuel level before fill/i), "25");
     await user.type(screen.getByLabelText(/Notes/i), "Top off before trip");
 
     await user.click(screen.getByRole("button", { name: /Save Entry/i }));
@@ -158,6 +159,7 @@ describe("EntryLogView success path", () => {
       fuel_station: "Shell",
       fuel_octane: "87",
       was_full_tank: true,
+      fuel_level_before: 25,
       expense_category: "fuel",
       expense_amount: 40.24,
       description: "Fuel - 11.5 gal",
@@ -187,6 +189,9 @@ describe("EntryLogView success path", () => {
     ).toBe("");
     expect(
       (screen.getByLabelText(/Station/i) as HTMLInputElement).value
+    ).toBe("");
+    expect(
+      (screen.getByLabelText(/Fuel level before fill/i) as HTMLInputElement).value
     ).toBe("");
     expect(
       (screen.getByLabelText(/Notes/i) as HTMLTextAreaElement).value
@@ -240,6 +245,7 @@ describe("EntryLogView success path", () => {
       fuel_station: null,
       fuel_octane: null,
       was_full_tank: null,
+      fuel_level_before: null,
       expense_category: "regular_maintenance",
       expense_amount: null,
       description: "Oil change",
@@ -360,6 +366,7 @@ describe("EntryLogView success path", () => {
       fuel_station: null,
       fuel_octane: null,
       was_full_tank: null,
+      fuel_level_before: null,
       expense_category: "regular_maintenance",
       expense_amount: 42.5,
       description: "Cabin filter replacement",
@@ -388,6 +395,7 @@ function makeEntry(id: string, date: string, mileage: number) {
     fuel_station: null,
     fuel_octane: null,
     was_full_tank: null,
+    fuel_level_before: null,
     expense_category: null,
     expense_amount: null,
     description: null,

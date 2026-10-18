@@ -5,7 +5,7 @@
 - Title: Fuel Level Before Fill-Up — Partial Fill Range Accuracy
 - Priority: P1
 - Owner: Mounish Pedagandham
-- Status: `draft`
+- Status: `done`
 - Related backlog item: T025
 
 ## 1. Problem Statement
@@ -71,7 +71,7 @@ When recording a gas fill-up, users cannot input the fuel gauge level before pum
 
 4. **Row mapper** (`lib/db/supabase/data-access.ts`) — include `fuel_level_before: row.fuel_level_before ?? null` in the entry row mapper.
 
-5. **Stats service** (`lib/db/stats-service.ts`) — update range estimate to prefer `fuel_level_before` over full-tank assumption:
+5. **Stats service** (`lib/db/stats-service.ts`) — update range estimate to use the newest fuel entry with a usable level signal:
 
    Replace current range logic (lines 49–56):
    ```typescript
@@ -85,19 +85,23 @@ When recording a gas fill-up, users cannot input the fuel gauge level before pum
 
    New logic:
    ```typescript
-   const mostRecentFuelEntry = fuelEntries.sort((a, b) => b.mileage - a.mileage)[0];
-   const milesSinceLastFill = mostRecentFuelEntry
-     ? car.current_mileage - mostRecentFuelEntry.mileage
+   const mostRecentFuelEntryWithLevelSignal = fuelEntries
+     .sort((a, b) => b.date.localeCompare(a.date) || b.mileage - a.mileage)
+     .find((entry) => entry.was_full_tank || entry.fuel_level_before != null);
+   const milesSinceLastFill = mostRecentFuelEntryWithLevelSignal
+     ? car.current_mileage - mostRecentFuelEntryWithLevelSignal.mileage
      : 0;
 
    let gallonsAfterLastFill: number | null = null;
-   if (mostRecentFuelEntry && car.fuel_tank_capacity) {
-     if (mostRecentFuelEntry.fuel_level_before != null) {
-       gallonsAfterLastFill =
-         (mostRecentFuelEntry.fuel_level_before / 100) * car.fuel_tank_capacity +
-         (mostRecentFuelEntry.fuel_gallons ?? 0);
-     } else if (mostRecentFuelEntry.was_full_tank) {
+   if (mostRecentFuelEntryWithLevelSignal && car.fuel_tank_capacity) {
+     if (mostRecentFuelEntryWithLevelSignal.was_full_tank) {
        gallonsAfterLastFill = car.fuel_tank_capacity;
+     } else if (mostRecentFuelEntryWithLevelSignal.fuel_level_before != null) {
+       gallonsAfterLastFill = Math.min(
+         car.fuel_tank_capacity,
+         (mostRecentFuelEntryWithLevelSignal.fuel_level_before / 100) * car.fuel_tank_capacity +
+           (mostRecentFuelEntryWithLevelSignal.fuel_gallons ?? 0)
+       );
      }
    }
 
@@ -148,7 +152,7 @@ When recording a gas fill-up, users cannot input the fuel gauge level before pum
 - **Manual flows**:
   1. Create a partial fill-up with fuel level = 30% → check car stats page shows updated range.
   2. Create a fill-up with no fuel level → verify range estimate falls back to full-tank assumption.
-  3. Leave `was_full_tank` unchecked and `fuel_level_before` empty → range estimate is `null` (no range shown).
+  3. Leave `was_full_tank` unchecked and `fuel_level_before` empty → range estimate falls back to the newest older entry with a usable level signal, or `null` if none exists.
 
 ## 10. Rollout and Rollback
 
@@ -163,19 +167,28 @@ When recording a gas fill-up, users cannot input the fuel gauge level before pum
 
 ## 12. Acceptance Criteria
 
-- [ ] `fuel_level_before` column exists in `entries` table with `CHECK (fuel_level_before BETWEEN 0 AND 100)`.
-- [ ] Fuel entry form shows an optional "Fuel level before fill (%)" input.
-- [ ] Submitting the form with a value persists it to the DB.
-- [ ] Submitting without a value stores `null` — no validation error.
-- [ ] Range estimate on car stats uses `fuel_level_before` when present.
-- [ ] Range estimate falls back to full-tank assumption when `fuel_level_before` is null and `was_full_tank` is true.
-- [ ] Range estimate is `null` when neither `fuel_level_before` nor `was_full_tank` is set on the most recent fuel entry.
-- [ ] Existing full-tank entries without `fuel_level_before` produce the same range estimate as before.
-- [ ] TypeScript compiles with no errors.
+- [x] `fuel_level_before` column exists in `entries` table with `CHECK (fuel_level_before BETWEEN 0 AND 100)`.
+- [x] Fuel entry form shows an optional "Fuel level before fill (%)" input.
+- [x] Submitting the form with a value persists it to the DB.
+- [x] Submitting without a value stores `null` — no validation error.
+- [x] Range estimate on car stats uses `fuel_level_before` when present.
+- [x] Range estimate falls back to full-tank assumption when `fuel_level_before` is null and `was_full_tank` is true.
+- [x] Range estimate falls back to the newest older usable fuel signal when the latest fuel entry has neither `fuel_level_before` nor `was_full_tank`.
+- [x] Range estimate is `null` when no fuel entry has a usable level signal.
+- [x] Existing full-tank entries without `fuel_level_before` produce the same range estimate as before.
+- [x] TypeScript compiles with no errors.
 
 ## 13. Definition of Done Check
 
-- [ ] Code complete
-- [ ] Tests complete
-- [ ] Docs/plans updated
-- [ ] Quality gates passed
+- [x] Code complete
+- [x] Tests complete
+- [x] Docs/plans updated
+- [x] Quality gates passed
+
+## 14. Verification Notes
+
+- `npm run test:unit` passed. DB-backed local Supabase tests were skipped because local env was not configured.
+- `npm run test:component` passed.
+- `npx tsc --noEmit` passed.
+- `npm run lint` passed with three pre-existing warnings in toast/config files.
+- `npm run build` passed with non-secret local placeholder environment values.

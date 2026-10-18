@@ -75,6 +75,7 @@ export function mapEntryRow(row: EntryRow): Entry {
     fuel_station: row.fuel_station,
     fuel_octane: row.fuel_octane,
     was_full_tank: row.was_full_tank,
+    fuel_level_before: row.fuel_level_before,
     expense_category: row.expense_category,
     expense_amount: toNumber(row.expense_amount),
     description: row.description,

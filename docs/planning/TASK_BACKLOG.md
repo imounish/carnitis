@@ -39,6 +39,7 @@ This is the single source of truth for planned implementation work in `carnitis`
 | T013A | Mobile-First Excellence Program (small-screen UX baseline) | P0 | done | T001 | `IP-013A-mobile-first-excellence.md` |
 | T015A | Entries Client Form Component Test Coverage | P1 | done | T007 | `IP-015A-entries-client-form-component-tests.md` |
 | T019 | Temporal Data Semantics Audit + Local-Time Display Hardening | P0 | done | T005B, T007 | `IP-019-temporal-data-semantics-and-local-time-hardening.md` |
+| T025 | Fuel Level Before Fill-Up — Partial Fill Range Accuracy | P1 | done | T007 | `IP-025-fuel-level-before-fill.md` |
 
 ### Phase 1 — Production Blockers (P0)
 
@@ -52,7 +53,6 @@ This is the single source of truth for planned implementation work in `carnitis`
 
 | ID | Title | Priority | Status | Depends On | Plan |
 |---|---|---|---|---|---|
-| T025 | Fuel Level Before Fill-Up — Partial Fill Range Accuracy | P1 | todo | T007 | `IP-025-fuel-level-before-fill.md` |
 | T024 | Codebase Simplification + Code Quality Hardening | P1 | todo | T020 | `IP-024-codebase-simplification.md` |
 | T012 | Accessibility Hardening (keyboard nav, contrast, ARIA, focus management) | P1 | todo | T020 | `IP-012-accessibility-hardening.md` |
 | T015 | Test Strategy: Integration Write Flows + E2E Smoke | P1 | todo | T020 | `IP-015-test-strategy-baseline.md` |

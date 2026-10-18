@@ -85,6 +85,7 @@ test("entry mapper preserves optional linkage fields", () => {
     fuel_station: null,
     fuel_octane: null,
     was_full_tank: null,
+    fuel_level_before: null,
     expense_category: "regular_maintenance",
     expense_amount: "95.25",
     description: "Oil change",
@@ -99,6 +100,7 @@ test("entry mapper preserves optional linkage fields", () => {
 
   assert.equal(entry.expense_amount, 95.25);
   assert.equal(entry.date, "2026-03-16");
+  assert.equal(entry.fuel_level_before, null);
   assert.equal(entry.maintenance_item_id, "maint-1");
   assert.equal(entry.todo_id, "todo-1");
 });

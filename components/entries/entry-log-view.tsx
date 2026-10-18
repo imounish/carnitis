@@ -423,6 +423,28 @@ export function EntryLogView({
                 Full tank fill-up
               </Label>
             </div>
+            <div className="mt-3 space-y-1.5">
+              <Label htmlFor="fuel_level_before" className="text-xs">
+                Fuel level before fill (%)
+              </Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="fuel_level_before"
+                  name="fuel_level_before"
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  max={100}
+                  step={1}
+                  placeholder="25"
+                  className="h-10 w-28"
+                />
+                <span className="text-sm text-muted-foreground">%</span>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Optional. Improves range estimate after partial fills.
+              </p>
+            </div>
           </div>
         )}
 

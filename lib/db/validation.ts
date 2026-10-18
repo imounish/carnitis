@@ -81,6 +81,7 @@ export const createEntryInputSchema = z.object({
   fuel_station: nullableTrimmedString,
   fuel_octane: nullableTrimmedString,
   was_full_tank: z.boolean().nullable(),
+  fuel_level_before: z.number().int().min(0).max(100).nullable(),
   expense_category: z.enum(expenseCategories).nullable(),
   expense_amount: numberField.nullable(),
   description: nullableTrimmedString,

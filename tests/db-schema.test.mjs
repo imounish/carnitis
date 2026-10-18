@@ -62,3 +62,57 @@ test(
     }
   }
 );
+
+test(
+  "local entries schema has optional fuel level before fill column",
+  { skip: !loadLocalEnv() },
+  async (t) => {
+    const pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+    });
+
+    try {
+      try {
+        await pool.query("select 1");
+      } catch (error) {
+        const code =
+          error && typeof error === "object" ? error.code : undefined;
+        if (code === "EPERM" || code === "ECONNREFUSED") {
+          t.skip("Local Supabase is not reachable from this environment.");
+          return;
+        }
+        throw error;
+      }
+
+      const result = await pool.query(
+        `
+          select column_name, data_type, is_nullable
+          from information_schema.columns
+          where table_schema = 'public'
+            and table_name = 'entries'
+            and column_name = 'fuel_level_before'
+        `
+      );
+
+      assert.equal(result.rows[0]?.column_name, "fuel_level_before");
+      assert.equal(result.rows[0]?.data_type, "smallint");
+      assert.equal(result.rows[0]?.is_nullable, "YES");
+
+      const constraint = await pool.query(
+        `
+          select pg_get_constraintdef(oid) as definition
+          from pg_constraint
+          where conrelid = 'public.entries'::regclass
+            and pg_get_constraintdef(oid) ilike '%fuel_level_before%'
+        `
+      );
+
+      assert.match(
+        constraint.rows.map((row) => row.definition).join("\n"),
+        /fuel_level_before.*0.*100/
+      );
+    } finally {
+      await pool.end();
+    }
+  }
+);

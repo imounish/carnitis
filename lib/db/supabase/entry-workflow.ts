@@ -164,6 +164,7 @@ export async function createEntryWorkflow({
           fuel_station,
           fuel_octane,
           was_full_tank,
+          fuel_level_before,
           expense_category,
           expense_amount,
           description,
@@ -175,7 +176,7 @@ export async function createEntryWorkflow({
         )
         values (
           $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-          $11, $12, $13, $14, $15, $16, $17, $18, $19
+          $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
         )
         returning *
       `,
@@ -191,6 +192,7 @@ export async function createEntryWorkflow({
         entry.fuel_station,
         entry.fuel_octane,
         entry.was_full_tank,
+        entry.fuel_level_before,
         entry.expense_category,
         entry.expense_amount,
         entry.description,
@@ -317,6 +319,7 @@ function mapEntryRow(row: EntryRow): Entry {
     fuel_station: row.fuel_station,
     fuel_octane: row.fuel_octane,
     was_full_tank: row.was_full_tank,
+    fuel_level_before: row.fuel_level_before,
     expense_category: row.expense_category,
     expense_amount: toNumber(row.expense_amount),
     description: row.description,

@@ -24,6 +24,14 @@ const fuelPayloadSchema = z.object({
   fuel_station: nullableTrimmedString.optional().default(null),
   fuel_octane: nullableTrimmedString.optional().default(null),
   was_full_tank: z.boolean().optional().default(false),
+  fuel_level_before: z
+    .number()
+    .int()
+    .min(0)
+    .max(100)
+    .nullable()
+    .optional()
+    .default(null),
   description: nullableTrimmedString.optional().default(null),
   vendor: nullableTrimmedString.optional().default(null),
   notes: nullableTrimmedString.optional().default(null),
@@ -110,7 +118,7 @@ function getRequiredNumberValue(formData: FormData, key: string) {
   return Number(getTrimmedValue(formData, key));
 }
 
-function getOptionalPositiveNumberValue(formData: FormData, key: string) {
+function getOptionalNumberValue(formData: FormData, key: string) {
   const value = getTrimmedValue(formData, key);
   if (!value) {
     return null;
@@ -146,6 +154,10 @@ export function buildCreateEntryPayloadFromFormData(formData: FormData) {
       fuel_station: getOptionalTextValue(formData, "fuel_station"),
       fuel_octane: getOptionalTextValue(formData, "fuel_octane"),
       was_full_tank: formData.get("was_full_tank") === "on",
+      fuel_level_before: getOptionalNumberValue(
+        formData,
+        "fuel_level_before"
+      ),
       description: getOptionalTextValue(formData, "description"),
       vendor: getOptionalTextValue(formData, "vendor"),
       notes: getOptionalTextValue(formData, "notes"),
@@ -160,7 +172,9 @@ export function buildCreateEntryPayloadFromFormData(formData: FormData) {
       entry_type: "maintenance_expense",
       date: getTrimmedValue(formData, "date"),
       mileage: getRequiredNumberValue(formData, "mileage"),
-      expense_category: getTrimmedValue(formData, "expense_category") || "regular_maintenance",
+      expense_category:
+        getTrimmedValue(formData, "expense_category") ||
+        "regular_maintenance",
       expense_amount: getRequiredNumberValue(formData, "expense_amount"),
       description: getTrimmedValue(formData, "description"),
       vendor: getOptionalTextValue(formData, "vendor"),
@@ -174,18 +188,20 @@ export function buildCreateEntryPayloadFromFormData(formData: FormData) {
 
   return normalizeCreateEntryPayload(
     maintenanceDonePayloadSchema.parse({
-    car_id: getTrimmedValue(formData, "car_id"),
-    entry_type: "maintenance_done",
-    date: getTrimmedValue(formData, "date"),
-    mileage: getRequiredNumberValue(formData, "mileage"),
-    expense_category: getTrimmedValue(formData, "expense_category") || "regular_maintenance",
-    expense_amount: getOptionalPositiveNumberValue(formData, "expense_amount"),
-    description: getTrimmedValue(formData, "description"),
-    vendor: getOptionalTextValue(formData, "vendor"),
-    parts_replaced: getOptionalTextValue(formData, "parts_replaced"),
-    maintenance_item_id: getOptionalLinkedId(formData, "maintenance_item_id"),
-    todo_id: getOptionalLinkedId(formData, "todo_id"),
-    notes: getOptionalTextValue(formData, "notes"),
+      car_id: getTrimmedValue(formData, "car_id"),
+      entry_type: "maintenance_done",
+      date: getTrimmedValue(formData, "date"),
+      mileage: getRequiredNumberValue(formData, "mileage"),
+      expense_category:
+        getTrimmedValue(formData, "expense_category") ||
+        "regular_maintenance",
+      expense_amount: getOptionalNumberValue(formData, "expense_amount"),
+      description: getTrimmedValue(formData, "description"),
+      vendor: getOptionalTextValue(formData, "vendor"),
+      parts_replaced: getOptionalTextValue(formData, "parts_replaced"),
+      maintenance_item_id: getOptionalLinkedId(formData, "maintenance_item_id"),
+      todo_id: getOptionalLinkedId(formData, "todo_id"),
+      notes: getOptionalTextValue(formData, "notes"),
     })
   );
 }
@@ -195,7 +211,9 @@ function roundCurrency(value: number) {
 }
 
 function formatCompactNumber(value: number) {
-  return value % 1 === 0 ? String(value) : value.toFixed(3).replace(/0+$/, "").replace(/\.$/, "");
+  return value % 1 === 0
+    ? String(value)
+    : value.toFixed(3).replace(/0+$/, "").replace(/\.$/, "");
 }
 
 function normalizeCreateEntryPayload(
@@ -220,6 +238,7 @@ function normalizeCreateEntryPayload(
       fuel_station: value.fuel_station,
       fuel_octane: value.fuel_octane,
       was_full_tank: value.was_full_tank,
+      fuel_level_before: value.fuel_level_before,
       expense_category: "fuel",
       expense_amount: totalCost,
       description:
@@ -244,6 +263,7 @@ function normalizeCreateEntryPayload(
       fuel_station: null,
       fuel_octane: null,
       was_full_tank: null,
+      fuel_level_before: null,
       expense_category: value.expense_category,
       expense_amount: roundCurrency(value.expense_amount),
       description: value.description,
@@ -266,6 +286,7 @@ function normalizeCreateEntryPayload(
     fuel_station: null,
     fuel_octane: null,
     was_full_tank: null,
+    fuel_level_before: null,
     expense_category: value.expense_category,
     expense_amount:
       value.expense_amount == null ? null : roundCurrency(value.expense_amount),
