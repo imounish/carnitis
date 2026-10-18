@@ -4,7 +4,7 @@
 - Task ID: T016
 - Title: CI Quality Gates (typecheck, lint, test, build via GitHub Actions)
 - Priority: P1
-- Status: `draft`
+- Status: `done`
 - Related backlog item: T016
 
 ## 1. Problem Statement
@@ -27,9 +27,9 @@ No CI/CD pipeline exists. No `.github/` directory. Code merges have no automated
 - Performance budgets
 
 ## 4. Acceptance Criteria
-- [ ] GitHub Actions workflow runs on PR to main
-- [ ] TypeScript check passes
-- [ ] Lint passes
-- [ ] Tests pass
-- [ ] Build passes
-- [ ] Branch protection configured on main
+- [x] GitHub Actions workflow runs on PR to main
+- [x] TypeScript check passes
+- [x] Lint passes
+- [x] Tests pass
+- [x] Build passes
+- [x] Branch protection configured on main

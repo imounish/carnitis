@@ -41,6 +41,7 @@ This is the single source of truth for planned implementation work in `carnitis`
 | T019 | Temporal Data Semantics Audit + Local-Time Display Hardening | P0 | done | T005B, T007 | `IP-019-temporal-data-semantics-and-local-time-hardening.md` |
 | T020 | Dashboard + Shared Surface Supabase Migration | P0 | done | T005B, T007 | `IP-020-dashboard-supabase-migration.md` |
 | T017 | Security + Privacy Baseline (headers, session policy, `ignoreBuildErrors` removal) | P0 | done | T002, T005A | `IP-017-security-privacy-baseline.md` |
+| T016 | CI Quality Gates (typecheck, lint, test, build via GitHub Actions) | P1 | done | T015, T017 | `IP-016-ci-quality-gates.md` |
 | T025 | Fuel Level Before Fill-Up — Partial Fill Range Accuracy | P1 | done | T007 | `IP-025-fuel-level-before-fill.md` |
 | T026 | Chronological Mileage Tracking + Validation (date-bounded odometer, schema drift repair) | P1 | done | T007 | - (no plan; shipped in `d07c31e`, `3828758`) |
 
@@ -57,7 +58,6 @@ This is the single source of truth for planned implementation work in `carnitis`
 | T024 | Codebase Simplification + Code Quality Hardening | P1 | todo | T020 | `IP-024-codebase-simplification.md` |
 | T012 | Accessibility Hardening (keyboard nav, contrast, ARIA, focus management) | P1 | todo | T020 | `IP-012-accessibility-hardening.md` |
 | T015 | Test Strategy: Integration Write Flows + E2E Smoke | P1 | todo | T020 | `IP-015-test-strategy-baseline.md` |
-| T016 | CI Quality Gates (typecheck, lint, test, build via GitHub Actions) | P1 | todo | T015, T017 | `IP-016-ci-quality-gates.md` |
 | T014 | Performance Baseline (RSC/client boundaries + bundle audit) | P1 | todo | T020 | `IP-014-performance-baseline.md` |
 
 ### Phase 3 — Polish (P2)
@@ -113,7 +113,7 @@ Scoped to: keyboard navigation for all CRUD flows, color contrast audit on stat 
 Scoped to: integration tests for critical write flows (entry creation with car aggregate sync, maintenance completion via entries) + one E2E smoke test (login → dashboard → create entry). Unit layer already has 20+ test files.
 
 ### T016: CI Quality Gates
-GitHub Actions pipeline with: `npx tsc --noEmit`, `npm run lint`, `npm run test`, `npm run build`. Requires `ignoreBuildErrors` removal from T017.
+GitHub Actions pipeline with: `npx tsc --noEmit`, `npm run lint`, `npm run test`, `npm run build`. Implemented in `.github/workflows/ci.yml` (job `ci`, required on `main`); Dependabot via `.github/dependabot.yml`.
 
 ### T014: Performance Baseline
 RSC/client boundary audit (especially post-dashboard migration), bundle size check, ensure no unnecessary client-side JS.
