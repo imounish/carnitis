@@ -39,13 +39,14 @@ This is the single source of truth for planned implementation work in `carnitis`
 | T013A | Mobile-First Excellence Program (small-screen UX baseline) | P0 | done | T001 | `IP-013A-mobile-first-excellence.md` |
 | T015A | Entries Client Form Component Test Coverage | P1 | done | T007 | `IP-015A-entries-client-form-component-tests.md` |
 | T019 | Temporal Data Semantics Audit + Local-Time Display Hardening | P0 | done | T005B, T007 | `IP-019-temporal-data-semantics-and-local-time-hardening.md` |
+| T020 | Dashboard + Shared Surface Supabase Migration | P0 | done | T005B, T007 | `IP-020-dashboard-supabase-migration.md` |
 | T025 | Fuel Level Before Fill-Up — Partial Fill Range Accuracy | P1 | done | T007 | `IP-025-fuel-level-before-fill.md` |
+| T026 | Chronological Mileage Tracking + Validation (date-bounded odometer, schema drift repair) | P1 | done | T007 | - (no plan; shipped in `d07c31e`, `3828758`) |
 
 ### Phase 1 — Production Blockers (P0)
 
 | ID | Title | Priority | Status | Depends On | Plan |
 |---|---|---|---|---|---|
-| T020 | Dashboard + Shared Surface Supabase Migration | P0 | todo | T005B, T007 | `IP-020-dashboard-supabase-migration.md` |
 | T017 | Security + Privacy Baseline (headers, session policy, `ignoreBuildErrors` removal) | P0 | todo | T002, T005A | `IP-017-security-privacy-baseline.md` |
 | T021 | Deployment + Hosting Configuration | P0 | todo | T017, T020 | `IP-021-deployment-hosting.md` |
 
@@ -76,15 +77,15 @@ This is the single source of truth for planned implementation work in `carnitis`
 ## Critical Path to Production
 
 ```
-T020 (dashboard migration) ──┐
-                              ├──→ T021 (deployment) ──→ PRODUCTION
-T017 (security baseline)  ───┘
+T020 (dashboard migration, done) ──┐
+                                    ├──→ T021 (deployment) ──→ PRODUCTION
+T017 (security baseline)  ─────────┘
 ```
 
 ## Task Summaries
 
-### T020: Dashboard + Shared Surface Supabase Migration
-The dashboard is the **only remaining route using mock data**. `components/dashboard/dashboard-view.tsx` imports from `lib/db/api.ts` which calls `createMockDataAccess()`. After migration, the entire mock facade (`lib/db/api.ts`, `lib/db/mock/`) can be deleted. `lib/db/stats-service.ts` is already adapter-agnostic.
+### T020: Dashboard + Shared Surface Supabase Migration (done)
+Dashboard migrated to Supabase and the mock facade (`lib/db/api.ts`, `lib/db/mock/`) was deleted in `7242474`.
 
 ### T017: Security + Privacy Baseline
 Remove `ignoreBuildErrors: true` from `next.config.mjs`. Add security headers (CSP, HSTS, X-Frame-Options, X-Content-Type-Options). Create `middleware.ts` for edge-level protection. Audit Better Auth session policy (expiry, cookie flags). Verify RLS coverage. Consider rate limiting on auth endpoints.
