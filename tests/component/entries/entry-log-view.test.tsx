@@ -197,8 +197,12 @@ describe("EntryLogView success path", () => {
       (screen.getByLabelText(/Notes/i) as HTMLTextAreaElement).value
     ).toBe("");
 
-    const submitButton = screen.getByRole("button", { name: /Save Entry/i });
-    expect((submitButton as HTMLButtonElement).disabled).toBe(false);
+    await waitFor(() =>
+      expect(
+        (screen.getByRole("button", { name: /Save Entry/i }) as HTMLButtonElement)
+          .disabled
+      ).toBe(false)
+    );
   });
 
   it("submits maintenance-done with advanced links visible, then collapses the advanced section and refreshes", async () => {
