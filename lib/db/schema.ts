@@ -74,6 +74,7 @@ export interface Entry {
   fuel_station: string | null;
   fuel_octane: string | null;
   was_full_tank: boolean | null;
+  fuel_level_before: number | null;
   // -- Maintenance/Expense fields --
   expense_category: ExpenseCategory | null;
   expense_amount: number | null;
@@ -165,6 +166,7 @@ CREATE TABLE entries (
   fuel_station VARCHAR(255),
   fuel_octane VARCHAR(20),
   was_full_tank BOOLEAN DEFAULT true,
+  fuel_level_before SMALLINT CHECK (fuel_level_before BETWEEN 0 AND 100),
   expense_category expense_category,
   expense_amount NUMERIC(12, 2),
   description TEXT,

@@ -101,6 +101,7 @@ test(
             fuel_total_cost,
             fuel_station,
             was_full_tank,
+            fuel_level_before,
             expense_category,
             expense_amount,
             description,
@@ -108,10 +109,10 @@ test(
             updated_at
           )
           values
-            ($1, $2, 'fuel', '2026-03-18', 120, 10, 3.50, 35.00, 'Station A', true, 'fuel', 35.00, 'Fuel A', '2026-03-18T08:00:00.000Z', '2026-03-18T08:00:00.000Z'),
-            ($1, $2, 'maintenance_expense', '2026-03-18', 121, null, null, null, null, null, 'regular_maintenance', 50.00, 'Service same day', '2026-03-18T12:00:00.000Z', '2026-03-18T12:00:00.000Z'),
-            ($1, $2, 'fuel', '2026-03-10', 100, 9, 3.40, 30.60, 'Station B', true, 'fuel', 30.60, 'Fuel B', '2026-03-10T09:00:00.000Z', '2026-03-10T09:00:00.000Z'),
-            ($3, $4, 'fuel', '2026-03-20', 95, 8, 3.20, 25.60, 'Foreign', true, 'fuel', 25.60, 'Foreign fuel', '2026-03-20T10:00:00.000Z', '2026-03-20T10:00:00.000Z')
+            ($1, $2, 'fuel', '2026-03-18', 120, 10, 3.50, 35.00, 'Station A', true, 30, 'fuel', 35.00, 'Fuel A', '2026-03-18T08:00:00.000Z', '2026-03-18T08:00:00.000Z'),
+            ($1, $2, 'maintenance_expense', '2026-03-18', 121, null, null, null, null, null, null, 'regular_maintenance', 50.00, 'Service same day', '2026-03-18T12:00:00.000Z', '2026-03-18T12:00:00.000Z'),
+            ($1, $2, 'fuel', '2026-03-10', 100, 9, 3.40, 30.60, 'Station B', true, null, 'fuel', 30.60, 'Fuel B', '2026-03-10T09:00:00.000Z', '2026-03-10T09:00:00.000Z'),
+            ($3, $4, 'fuel', '2026-03-20', 95, 8, 3.20, 25.60, 'Foreign', true, null, 'fuel', 25.60, 'Foreign fuel', '2026-03-20T10:00:00.000Z', '2026-03-20T10:00:00.000Z')
         `,
         [userA, carId, userB, foreignCarId]
       );
@@ -141,6 +142,8 @@ test(
         fuelEntries.map((entry) => entry.description),
         ["Fuel A", "Fuel B"]
       );
+      assert.equal(fuelEntries[0].fuel_level_before, 30);
+      assert.equal(fuelEntries[1].fuel_level_before, null);
       assert.equal(foreignEntries.length, 0);
     } finally {
       if (canReachDatabase) {
@@ -288,7 +291,7 @@ test(
         [userB, foreignCarId]
       );
 
-      await createEntryWorkflow({
+      const fuelEntry = await createEntryWorkflow({
         db: pool,
         userId: userA,
         input: {
@@ -302,6 +305,7 @@ test(
           fuel_station: "Station A",
           fuel_octane: "87",
           was_full_tank: true,
+          fuel_level_before: 30,
           expense_category: "fuel",
           expense_amount: 35,
           description: "Fuel up",
@@ -312,6 +316,7 @@ test(
           notes: null,
         },
       });
+      assert.equal(fuelEntry.fuel_level_before, 30);
 
       const maintenanceEntry = await createEntryWorkflow({
         db: pool,
@@ -327,6 +332,7 @@ test(
           fuel_station: null,
           fuel_octane: null,
           was_full_tank: null,
+          fuel_level_before: null,
           expense_category: "regular_maintenance",
           expense_amount: 49.99,
           description: "Oil change",
@@ -354,6 +360,7 @@ test(
               fuel_station: null,
               fuel_octane: null,
               was_full_tank: null,
+              fuel_level_before: null,
               expense_category: "repairs",
               expense_amount: 120,
               description: "Blocked write",
@@ -388,6 +395,7 @@ test(
               fuel_station: null,
               fuel_octane: null,
               was_full_tank: null,
+              fuel_level_before: null,
               expense_category: "repairs",
               expense_amount: 120,
               description: "Completed todo relink",
@@ -548,6 +556,7 @@ test(
         fuel_station: null,
         fuel_octane: "87",
         was_full_tank: true,
+        fuel_level_before: null,
         expense_category: "fuel",
         expense_amount: 35,
         vendor: null,
@@ -636,6 +645,7 @@ test(
         fuel_station: null,
         fuel_octane: null,
         was_full_tank: null,
+        fuel_level_before: null,
         expense_category: "regular_maintenance",
         expense_amount: null,
         vendor: null,

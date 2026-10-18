@@ -15,6 +15,7 @@ function makeEntry(id, date, mileage) {
     fuel_station: null,
     fuel_octane: null,
     was_full_tank: null,
+    fuel_level_before: null,
     expense_category: null,
     expense_amount: null,
     description: null,

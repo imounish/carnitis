@@ -44,6 +44,7 @@ const entry: Entry & { car?: Car } = {
   fuel_station: null,
   fuel_octane: null,
   was_full_tank: true,
+  fuel_level_before: null,
   expense_category: "fuel",
   expense_amount: 35,
   description: null,

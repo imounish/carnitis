@@ -46,13 +46,38 @@ export async function getCarStatsFromDataAccess(
     (item) => item.status === "pending" || item.status === "in_progress"
   ).length;
 
-  const lastFuel = recentFuel[0];
-  const milesSinceLastFill = lastFuel
-    ? car.current_mileage - lastFuel.mileage
+  const mostRecentFuelEntryWithLevelSignal = [...fuelEntries]
+    .sort(
+      (left, right) =>
+        right.date.localeCompare(left.date) || right.mileage - left.mileage
+    )
+    .find(
+      (entry) => entry.was_full_tank || entry.fuel_level_before != null
+    );
+  const milesSinceLastFill = mostRecentFuelEntryWithLevelSignal
+    ? car.current_mileage - mostRecentFuelEntryWithLevelSignal.mileage
     : 0;
+
+  let gallonsAfterLastFill: number | null = null;
+  if (mostRecentFuelEntryWithLevelSignal && car.fuel_tank_capacity) {
+    if (mostRecentFuelEntryWithLevelSignal.was_full_tank) {
+      gallonsAfterLastFill = car.fuel_tank_capacity;
+    } else if (mostRecentFuelEntryWithLevelSignal.fuel_level_before != null) {
+      gallonsAfterLastFill = Math.min(
+        car.fuel_tank_capacity,
+        (mostRecentFuelEntryWithLevelSignal.fuel_level_before / 100) *
+          car.fuel_tank_capacity +
+          (mostRecentFuelEntryWithLevelSignal.fuel_gallons ?? 0)
+      );
+    }
+  }
+
   const estimatedRange =
-    avgMpg > 0 && car.fuel_tank_capacity
-      ? car.fuel_tank_capacity * avgMpg - milesSinceLastFill
+    avgMpg > 0 && gallonsAfterLastFill != null
+      ? Math.max(
+          0,
+          Math.round(gallonsAfterLastFill * avgMpg - milesSinceLastFill)
+        )
       : null;
 
   const now = new Date();
@@ -89,7 +114,7 @@ export async function getCarStatsFromDataAccess(
   return {
     totalSpent,
     avgMpg: Math.round(avgMpg * 10) / 10,
-    estimatedRange: estimatedRange ? Math.max(0, Math.round(estimatedRange)) : null,
+    estimatedRange,
     dueSoonCount,
     pendingTodos,
     monthlySpending,

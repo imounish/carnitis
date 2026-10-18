@@ -43,6 +43,7 @@ export interface EntriesTable {
   fuel_station: string | null;
   fuel_octane: string | null;
   was_full_tank: boolean | null;
+  fuel_level_before: number | null;
   expense_category:
     | "fuel"
     | "preventive_maintenance"
