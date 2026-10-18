@@ -1,10 +1,19 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   buildCreateMaintenanceInput,
   buildUpdateMaintenanceInput,
 } from "@/lib/db/maintenance-api";
 
 describe("maintenance API helpers", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-01T12:00:00Z"));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("computes server-owned due fields and status for creates", () => {
     expect(
       buildCreateMaintenanceInput(
