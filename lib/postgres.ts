@@ -13,11 +13,10 @@ export function getPostgresPool() {
   const env = getServerEnv();
   const pool = new Pool({
     connectionString: env.DATABASE_URL,
+    max: 3,
   });
 
-  if (process.env.NODE_ENV !== "production") {
-    globalThis.__carnitisPostgresPool = pool;
-  }
+  globalThis.__carnitisPostgresPool = pool;
 
   return pool;
 }

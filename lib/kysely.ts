@@ -16,9 +16,7 @@ export function getKyselyDb() {
     }),
   });
 
-  if (process.env.NODE_ENV !== "production") {
-    globalThis.__carnitisKysely = db;
-  }
+  globalThis.__carnitisKysely = db;
 
   return db;
 }

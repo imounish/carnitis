@@ -9,3 +9,5 @@ node_modules/
 .env*.local
 .DS_Store
 supabase-details.env
+.vercel
+supabase-prod-db-password
