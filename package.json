@@ -82,7 +82,7 @@
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.1.6",
     "jsdom": "^29.0.0",
-    "msw": "^2.12.13",
+    "msw": "^3.0.3",
     "postcss": "^8.5",
     "supabase": "^2.78.1",
     "tailwindcss": "^4.2.0",
