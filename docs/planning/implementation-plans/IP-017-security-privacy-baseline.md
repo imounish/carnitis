@@ -4,7 +4,7 @@
 - Task ID: T017
 - Title: Security + Privacy Baseline
 - Priority: P0
-- Status: `draft`
+- Status: `done`
 - Related backlog item: T017
 
 ## 1. Problem Statement
@@ -80,9 +80,9 @@ The application has several security gaps that must be closed before production 
   - Mitigation: Start with report-only mode, then enforce
 
 ## 11. Acceptance Criteria
-- [ ] `ignoreBuildErrors: true` removed from `next.config.mjs`
-- [ ] `npm run build` passes cleanly
-- [ ] `middleware.ts` applies security headers to all routes
-- [ ] Better Auth session policy explicitly configured
-- [ ] RLS verified on all user-owned tables
-- [ ] Security baseline documented
+- [x] `ignoreBuildErrors: true` removed from `next.config.mjs`
+- [x] `npm run build` passes cleanly
+- [x] Security headers applied to all routes via `next.config.mjs` `headers()` (Next 16 deprecates `middleware.ts`); CSP is report-only
+- [x] Better Auth session policy explicitly configured
+- [x] RLS verified on all user-owned tables
+- [x] Security baseline documented

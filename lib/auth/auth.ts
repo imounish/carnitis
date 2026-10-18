@@ -27,6 +27,15 @@ export const auth = betterAuth({
         }
       : undefined,
   trustedOrigins: getBetterAuthTrustedOrigins(env.BETTER_AUTH_URL),
+  session: {
+    expiresIn: 60 * 60 * 24 * 7,
+    updateAge: 60 * 60 * 24,
+  },
+  rateLimit: {
+    enabled: true,
+    window: 60,
+    max: 100,
+  },
   advanced: {
     useSecureCookies: env.BETTER_AUTH_URL.startsWith("https://"),
   },

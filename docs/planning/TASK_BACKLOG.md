@@ -40,6 +40,7 @@ This is the single source of truth for planned implementation work in `carnitis`
 | T015A | Entries Client Form Component Test Coverage | P1 | done | T007 | `IP-015A-entries-client-form-component-tests.md` |
 | T019 | Temporal Data Semantics Audit + Local-Time Display Hardening | P0 | done | T005B, T007 | `IP-019-temporal-data-semantics-and-local-time-hardening.md` |
 | T020 | Dashboard + Shared Surface Supabase Migration | P0 | done | T005B, T007 | `IP-020-dashboard-supabase-migration.md` |
+| T017 | Security + Privacy Baseline (headers, session policy, `ignoreBuildErrors` removal) | P0 | done | T002, T005A | `IP-017-security-privacy-baseline.md` |
 | T025 | Fuel Level Before Fill-Up — Partial Fill Range Accuracy | P1 | done | T007 | `IP-025-fuel-level-before-fill.md` |
 | T026 | Chronological Mileage Tracking + Validation (date-bounded odometer, schema drift repair) | P1 | done | T007 | - (no plan; shipped in `d07c31e`, `3828758`) |
 
@@ -47,7 +48,6 @@ This is the single source of truth for planned implementation work in `carnitis`
 
 | ID | Title | Priority | Status | Depends On | Plan |
 |---|---|---|---|---|---|
-| T017 | Security + Privacy Baseline (headers, session policy, `ignoreBuildErrors` removal) | P0 | todo | T002, T005A | `IP-017-security-privacy-baseline.md` |
 | T021 | Deployment + Hosting Configuration | P0 | todo | T017, T020 | `IP-021-deployment-hosting.md` |
 
 ### Phase 2 — Quality & Confidence (P1)
@@ -88,7 +88,7 @@ T017 (security baseline)  ─────────┘
 Dashboard migrated to Supabase and the mock facade (`lib/db/api.ts`, `lib/db/mock/`) was deleted in `7242474`.
 
 ### T017: Security + Privacy Baseline
-Remove `ignoreBuildErrors: true` from `next.config.mjs`. Add security headers (CSP, HSTS, X-Frame-Options, X-Content-Type-Options). Create `middleware.ts` for edge-level protection. Audit Better Auth session policy (expiry, cookie flags). Verify RLS coverage. Consider rate limiting on auth endpoints.
+Remove `ignoreBuildErrors: true` from `next.config.mjs`. Add security headers (CSP, HSTS, X-Frame-Options, X-Content-Type-Options). Security headers set via `next.config.mjs` (Next 16 deprecates middleware). Audit Better Auth session policy (expiry, cookie flags). Verify RLS coverage. Consider rate limiting on auth endpoints.
 
 ### T021: Deployment + Hosting Configuration
 Git remote setup, hosting platform (Vercel recommended), production Supabase project, environment variables, domain/SSL, successful production build and deployment.
