@@ -18,6 +18,7 @@ Next 16 deprecates `middleware.ts`, so headers live in config rather than middle
 - CSRF protection and origin checks come from Better Auth with `trustedOrigins`.
 
 ## Data access (Supabase)
+- Better Auth tables (`user`, `session`, `account`, `verification`) are locked down by `20261018210000_lock_down_better_auth_tables.sql`: RLS on, API roles revoked. They live in `public`, which the Supabase REST API exposes; the app reads them only over the server-side Postgres connection. Re-check after adding any Better Auth plugin that creates tables.
 - RLS is enabled on every user-owned table: `user_profiles`, `cars`, `entries`, `maintenance_schedule_items`, `todo_items` (`20260316101500_create_domain_tables_and_rls.sql`).
 
 ## Rollback

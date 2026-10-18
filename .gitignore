@@ -11,3 +11,4 @@ node_modules/
 supabase-details.env
 .vercel
 supabase-prod-db-password
+.env.production
